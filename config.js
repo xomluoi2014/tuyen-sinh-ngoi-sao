@@ -23,7 +23,7 @@ window.APP_CONFIG = {
  */
 window.callBackend = async function(action, payload = {}, token = '') {
   const url = (window.APP_CONFIG.GAS_API_URL || '').trim();
-  if (!url || url.includes('https://script.google.com/macros/s/AKfycbxOU7-IYX10t-4NQbn7VevNK4YZFFOTxcSL-pyznQ8J2V5ma-P749gBy7vpZYitLYVc_w/exec')) {
+  if (!url || url.includes('DÁN_MÃ_TRIỂN_KHAI')) {
     throw new Error('Chưa cấu hình GAS_API_URL trong file config.js! Vui lòng mở config.js và dán link Web App của Google Apps Script vào.');
   }
 
