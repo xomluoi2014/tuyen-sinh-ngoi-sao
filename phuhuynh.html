@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Ký Tuyển Sinh Trực Tuyến – Trường Tiểu học Ngôi Sao</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    .ph-wrap { max-width: 860px; margin: 16px auto 40px; padding: 0 14px; }
+    .ph-hero {
+      background: linear-gradient(135deg, #2e6b18 0%, #4e972e 60%, #8bc83a 100%);
+      border-radius: 22px; padding: 20px 24px; color: #fff;
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+      margin-bottom: 16px; box-shadow: 0 10px 28px rgba(46, 107, 24, 0.22);
+    }
+    .ph-hero h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+    .ph-hero p { margin: 0; font-size: 13.5px; opacity: 0.94; }
+    .ph-hero-art {
+      width: 112px; height: 112px; border-radius: 26px; overflow: hidden;
+      background: #f4fbea; border: 3px solid rgba(255,255,255,0.85);
+      transform: rotate(4deg); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ph-hero-art img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Revision alert banner */
+    .rev-banner {
+      display: none; background: #fffbeb; border: 1.5px solid #f59e0b;
+      border-radius: 16px; padding: 14px 18px; margin-bottom: 16px;
+      align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .rev-banner.show { display: flex; }
+
+    /* Stepper */
+    .stepper {
+      display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;
+    }
+    .step-item {
+      flex: 1; min-width: 150px; background: #fff; border: 1.5px solid var(--brand-border);
+      border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+      cursor: pointer; transition: all 0.16s;
+    }
+    .step-item.active {
+      border-color: var(--brand-primary); background: var(--brand-soft);
+      box-shadow: 0 4px 12px rgba(78, 151, 46, 0.14);
+    }
+    .step-item.done { border-color: #86efac; background: #f0fdf4; }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; color: var(--ink);
+      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0;
+    }
+    .step-item.active .step-num { background: var(--brand-primary); color: #fff; }
+    .step-item.done .step-num { background: #16a34a; color: #fff; }
+    .step-label { font-weight: 700; font-size: 13px; line-height: 1.25; }
+
+    /* Quick Copy Address Bar */
+    .copy-addr-bar {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+      padding: 10px 12px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;
+      align-items: center;
+    }
+    .copy-addr-bar span { font-size: 12.5px; font-weight: 700; color: var(--ink-muted); }
+
+    .step-actions {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5efe0;
+    }
+
+    /* Closed state */
+    .closed-box {
+      display: none; text-align: center; padding: 40px 20px;
+    }
+    .closed-box.show { display: block; }
+
+    /* Ticket Card Preview */
+    .ticket-img-wrap {
+      text-align: center; margin: 12px 0;
+    }
+    .ticket-img-wrap img {
+      max-width: 100%; border-radius: 16px; box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+      border: 1px solid #d8ecc8;
+    }
+
+    /* Honeypot hidden */
+    .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+    @media (max-width: 640px) {
+      .ph-hero { flex-direction: column; text-align: center; padding: 16px; }
+      .ph-hero-art { width: 88px; height: 88px; border-radius: 20px; }
+      .ph-hero h1 { font-size: 18.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader-overlay open" id="loader">
+    <div class="spinner"></div>
+    <div id="loaderText" style="font-weight:700; color:var(--brand-dark);">Đang tải biểu mẫu tuyển sinh...</div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-symbol" id="phLogo" title="Logo nhà trường">⭐</div>
+      <div>
+        <div class="brand-title" id="phSchoolName">TRƯỜNG TIỂU HỌC NGÔI SAO</div>
+        <div class="brand-sub" id="phYear">Tuyển sinh trực tuyến</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn btn-outline btn-sm" id="btnOpenLookup">🔍 Tra cứu hồ sơ</button>
+      <a href="index.html" class="btn btn-outline btn-sm" title="Về trang chủ">🏠</a>
+    </div>
+  </header>
+
+  <main class="ph-wrap">
+    <section class="ph-hero">
+      <div>
+        <div style="font-size:12px; font-weight:700; opacity:0.9; margin-bottom:4px;" id="phHeroSub">CỔNG ĐĂNG KÝ TUYỂN SINH TRỰC TUYẾN</div>
+        <h1 id="phHeroTitle">Đăng Ký Hồ Sơ Nhập Học</h1>
+        <p id="phHeroDesc">Phụ huynh vui lòng điền chính xác thông tin theo Giấy khai sinh của học sinh. Hệ thống tự động lưu nháp trên máy trong quá trình nhập.</p>
+      </div>
+      <div class="ph-hero-art" id="phHeroArt"><span style="font-size:48px;">🎒</span></div>
+    </section>
+
+    <!-- Banner hồ sơ chờ bổ sung -->
+    <div class="rev-banner" id="revBanner">
+      <div>
+        <div style="font-weight:800; color:#b45309; font-size:14.5px;" id="revBannerTitle">⚠️ Hồ sơ cần bổ sung thông tin</div>
+        <div style="font-size:13px; color:#78350f; margin-top:3px;" id="revBannerNote"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-warning btn-sm" id="btnLoadRevision">✏️ Mở hồ sơ để sửa ngay</button>
+        <button class="btn btn-outline btn-sm" id="btnCancelRevision" style="display:none;">Hủy chế độ sửa</button>
+      </div>
+    </div>
+
+    <!-- Thông báo tạm đóng cổng -->
+    <div class="card closed-box" id="closedBox">
+      <div style="font-size:48px; margin-bottom:10px;">🔒</div>
+      <h2 style="margin:0 0 8px; color:var(--danger);">Cổng Tuyển Sinh Hiện Đang Tạm Đóng</h2>
+      <p id="closedMsg" style="color:var(--ink-muted); max-width:500px; margin:0 auto 16px;"></p>
+      <button class="btn btn-outline" id="btnLookupClosed">🔍 Tra cứu hồ sơ đã nộp</button>
+    </div>
+
+    <!-- Khu vực điền Form -->
+    <div id="formContainer">
+      <div class="stepper" id="stepper"></div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+          <h2 id="currentTabTitle" style="margin:0; font-size:17px; color:var(--brand-dark); cursor:default; user-select:none;">1. Thông tin học sinh</h2>
+          <span id="editModeTag" class="badge badge-cho-bo-sung" style="display:none;">Đang bổ sung hồ sơ</span>
+        </div>
+
+        <!-- Thanh hỗ trợ chép nhanh địa chỉ ở bước Hộ khẩu & Nơi ở -->
+        <div class="copy-addr-bar" id="copyAddrBar" style="display:none;">
+          <span>⚡ Chép nhanh địa chỉ:</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="copyAddressGroup('Noi_Sinh', 'Noi_Khai_Sinh')">Khai sinh giống Nơi sinh</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="copyAddressGroup('Noi_Sinh', 'Que_Quan')">Quê quán giống Nơi sinh</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="copyAddressGroup('Noi_Sinh', 'Thuong_Tru')">Thường trú giống Nơi sinh</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="copyAddressGroup('Thuong_Tru', 'Cho_O')">Chỗ ở giống Thường trú</button>
+        </div>
+
+        <!-- Honeypot chống bot -->
+        <input type="text" id="website_url_hp" class="hp-field" tabindex="-1" autocomplete="off">
+
+        <form id="admissionForm" onsubmit="return false;">
+          <div id="tabPanels"></div>
+        </form>
+
+        <div class="step-actions">
+          <button type="button" class="btn btn-outline" id="btnPrevStep">← Quay lại</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-outline btn-sm" id="btnClearDraft" title="Xóa bản nháp đang điền">🗑️ Xóa nháp</button>
+            <button type="button" class="btn btn-primary" id="btnNextStep">Tiếp tục →</button>
+            <button type="button" class="btn btn-primary" id="btnSubmitForm" style="display:none;">✅ Nộp hồ sơ tuyển sinh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; color:var(--ink-muted); font-size:12.5px; margin-top:18px;" id="phFooterHotline"></div>
+  </main>
+
+  <!-- Modal Thẻ Hồ Sơ QR Thành Công -->
+  <div class="modal-overlay" id="ticketModal">
+    <div class="modal-box" style="max-width:480px;">
+      <button class="modal-close" onclick="closeModal('ticketModal')">×</button>
+      <div style="text-align:center;">
+        <div style="font-size:36px;">🎉</div>
+        <h2 style="margin:4px 0; color:var(--brand-dark);" id="ticketModalHeading">Nộp Hồ Sơ Thành Công!</h2>
+        <p style="margin:0 0 8px; color:var(--ink-muted); font-size:13px;">
+          Phụ huynh vui lòng <b>Tải ảnh Thẻ QR</b> (hoặc nhấn giữ vào ảnh để lưu vào điện thoại) và xuất trình tại bàn tiếp nhận hồ sơ.
+        </p>
+      </div>
+      <div class="ticket-img-wrap allow-context">
+        <img id="ticketCardImage" alt="Thẻ hồ sơ QR" src="">
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px;">
+        <a id="btnDownloadQR" class="btn btn-primary" download="The_Ho_So_Tuyen_Sinh.png">⬇️ Tải ảnh Thẻ QR</a>
+        <button class="btn btn-outline" onclick="closeModal('ticketModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tra Cứu Hồ Sơ Đa Thiết Bị -->
+  <div class="modal-overlay" id="lookupModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('lookupModal')">×</button>
+      <h2 style="margin:0 0 6px; color:var(--brand-dark);">🔍 Tra Cứu & Bổ Sung Hồ Sơ</h2>
+      <p style="margin:0 0 14px; font-size:13px; color:var(--ink-muted);">
+        Nhập <b>Mã hồ sơ</b> (hoặc <b>Số điện thoại phụ huynh</b>) cùng <b>Ngày sinh của học sinh</b> để xem trạng thái, tải lại thẻ QR hoặc bổ sung hồ sơ từ bất kỳ thiết bị nào.
+      </p>
+      <div class="form-grid">
+        <div class="form-group span-2">
+          <label class="form-label">Mã hồ sơ hoặc Số điện thoại <span class="req">*</span></label>
+          <input type="text" id="lkQuery" class="form-control" placeholder="VD: NS26-0015 hoặc 0987654321">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Ngày sinh học sinh (dd/mm/yyyy) <span class="req">*</span></label>
+          <input type="text" id="lkDob" class="form-control" placeholder="VD: 15/08/2020" oninput="this.value=formatDateInput(this.value)">
+        </div>
+      </div>
+      <div style="margin-top:14px; display:flex; gap:8px;">
+        <button class="btn btn-primary" style="flex:1;" id="btnDoLookup">Tra cứu ngay</button>
+      </div>
+      <div id="lookupResultBox" style="margin-top:16px; display:none; padding:14px; border-radius:14px; background:#f8fafc; border:1px solid #cbd5e1;"></div>
+    </div>
+  </div>
+
+  <!-- Vùng vẽ QR ẩn -->
+  <div id="hiddenQrHost" style="position:fixed; left:-9999px; top:-9999px;"></div>
+
+  <script src="config.js"></script>
+  <script>
+    const STATE = {
+      config: {},
+      tabs: [],
+      fields: [],
+      danhMuc: {},
+      currentStep: 0,
+      formOpenTs: Date.now(),
+      editingTicket: '',
+      editToken: '',
+      bypassCode: new URLSearchParams(location.search).get('bypass') || '',
+      pendingRevision: null,
+      logoClickCount: 0,
+      titleClickCount: 0
+    };
+
+    const DRAFT_KEY = 'ns_phuhuynh_draft_v2';
+
+    function setLoading(show, text = 'Đang xử lý...') {
+      document.getElementById('loaderText').textContent = text;
+      document.getElementById('loader').classList.toggle('open', show);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // Bấm 5 lần vào logo để nhập Mã ngoại lệ tại quầy hỗ trợ
+    document.getElementById('phLogo').addEventListener('click', () => {
+      STATE.logoClickCount++;
+      if (STATE.logoClickCount >= 5) {
+        STATE.logoClickCount = 0;
+        const code = prompt('Nhập Mã ngoại lệ (dành cho bàn hỗ trợ tại trường):', STATE.bypassCode);
+        if (code !== null) {
+          STATE.bypassCode = code.trim();
+          if (STATE.bypassCode) {
+            document.getElementById('closedBox').classList.remove('show');
+            document.getElementById('formContainer').style.display = 'block';
+            showToast('Đã kích hoạt chế độ hỗ trợ tại quầy!', 'success');
+          }
+        }
+      }
+    });
+
+    // Bấm 3 lần vào tiêu đề bước hoặc nhấn Alt+D để Demo Auto-Fill
+    document.getElementById('currentTabTitle').addEventListener('click', () => {
+      STATE.titleClickCount++;
+      setTimeout(() => { STATE.titleClickCount = 0; }, 900);
+      if (STATE.titleClickCount >= 3) {
+        STATE.titleClickCount = 0;
+        demoAutoFill();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        demoAutoFill();
+      }
+    });
+
+    function demoAutoFill() {
+      const randNum = Math.floor(100 + Math.random() * 899);
+      const sample = {
+        Ho_Ten_HS: 'Nguyễn Minh Khôi ' + randNum,
+        Ngay_Sinh: '15/08/2020',
+        Gioi_Tinh: 'Nam',
+        Khoi_Lop: 'Lớp 1',
+        Quoc_Tich: 'Việt Nam',
+        Dan_Toc: 'Kinh',
+        Ton_Giao: 'Không',
+        Dien_Chinh_Sach: 'Không',
+        Khuyet_Tat: 'không',
+        Can_Cuoc: '01422000' + Math.floor(1000 + Math.random() * 8999),
+        Ngay_Cap_CC: '10/01/2025',
+        Noi_Cap_CC: 'Cục Cảnh sát QLHC về TTXH',
+        Noi_Sinh_Tinh: 'Tỉnh Sơn La',
+        Noi_Khai_Sinh_Tinh: 'Tỉnh Sơn La',
+        Que_Quan_Tinh: 'Tỉnh Sơn La',
+        Thuong_Tru_Tinh: 'Tỉnh Sơn La',
+        Thuong_Tru_Chi_Tiet: 'Tổ 4, Đường Trường Chinh',
+        Cho_O_Tinh: 'Tỉnh Sơn La',
+        Cho_O_Chi_Tiet: 'Tổ 4, Đường Trường Chinh',
+        Ten_Cha: 'Nguyễn Văn Hùng',
+        Nam_Sinh_Cha: '1992',
+        Nghe_Nghiep_Cha: 'Kỹ sư',
+        SDT_Cha: '0987654321',
+        Ten_Me: 'Trần Thu Hà',
+        Nam_Sinh_Me: '1994',
+        Nghe_Nghiep_Me: 'Giáo viên',
+        SDT_Me: '0912345678',
+        Lien_He_Chinh: 'Nguyễn Văn Hùng',
+        Quan_He_Lien_He: 'Bố',
+        SDT_Lien_He: '0987654321',
+        Email_Lien_He: 'phuhuynh.demo@gmail.com',
+        Noi_Tru_Ban_Tru: 'Bán trú',
+        Cam_Ket_Du_Lieu: 'Đã đồng ý'
+      };
+
+      // Điền các ô Tỉnh trước để kích hoạt lọc Xã
+      for (const k in sample) {
+        const el = document.getElementById('field_' + k);
+        if (!el) continue;
+        if (el.type === 'checkbox') {
+          el.checked = true;
+        } else {
+          el.value = sample[k];
+          if (k.endsWith('_Tinh')) el.dispatchEvent(new Event('change'));
+        }
+      }
+      // Chọn Xã đầu tiên của Tỉnh Sơn La sau khi lọc
+      setTimeout(() => {
+        ['Noi_Sinh_Xa', 'Noi_Khai_Sinh_Xa', 'Que_Quan_Xa', 'Thuong_Tru_Xa', 'Cho_O_Xa'].forEach(xaId => {
+          const el = document.getElementById('field_' + xaId);
+          if (el && el.tagName === 'SELECT' && el.options.length > 1) {
+            el.selectedIndex = 1;
+          }
+        });
+        saveDraft();
+        showToast('⚡ Đã điền tự động hồ sơ mẫu Demo (Alt + D)!', 'info');
+      }, 60);
+    }
+
+    function getTinhByName(tenTinh) {
+      const list = STATE.danhMuc.DM_Tinh || [];
+      const norm = String(tenTinh || '').trim().toLowerCase();
+      return list.find(t => t.Ten.trim().toLowerCase() === norm);
+    }
+
+    function populateXaSelect(xaFieldId, tenTinh, selectedXa = '') {
+      const xaEl = document.getElementById('field_' + xaFieldId);
+      if (!xaEl || xaEl.tagName !== 'SELECT') return;
+      const allXa = STATE.danhMuc.DM_Xa || [];
+      const tinhObj = getTinhByName(tenTinh);
+      const filtered = tinhObj ? allXa.filter(x => x.Ma_Tinh === tinhObj.Ma) : [];
+
+      xaEl.innerHTML = '';
+      const defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = tinhObj ? '-- Chọn Xã / Phường --' : '-- Vui lòng chọn Tỉnh/TP trước --';
+      xaEl.appendChild(defOpt);
+
+      const selNorm = String(selectedXa || '').trim().toLowerCase();
+      filtered.forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.Ten.trim();
+        opt.textContent = x.Ten.trim();
+        if (selNorm && x.Ten.trim().toLowerCase() === selNorm) opt.selected = true;
+        xaEl.appendChild(opt);
+      });
+    }
+
+    window.copyAddressGroup = function(srcPrefix, dstPrefix) {
+      const sTinh = document.getElementById('field_' + srcPrefix + '_Tinh');
+      const sXa = document.getElementById('field_' + srcPrefix + '_Xa');
+      const sCt = document.getElementById('field_' + srcPrefix + '_Chi_Tiet');
+      const dTinh = document.getElementById('field_' + dstPrefix + '_Tinh');
+      const dCt = document.getElementById('field_' + dstPrefix + '_Chi_Tiet');
+
+      if (!sTinh || !dTinh || !sTinh.value) {
+        showToast('Vui lòng chọn Tỉnh/TP nguồn trước khi sao chép.', 'warning');
+        return;
+      }
+      dTinh.value = sTinh.value;
+      populateXaSelect(dstPrefix + '_Xa', sTinh.value, sXa ? sXa.value : '');
+      if (sCt && dCt) dCt.value = sCt.value;
+      saveDraft();
+      showToast('Đã sao chép địa chỉ thành công!', 'success', 1800);
+    };
+
+    function buildFormUI() {
+      const stepper = document.getElementById('stepper');
+      const panels = document.getElementById('tabPanels');
+      stepper.innerHTML = '';
+      panels.innerHTML = '';
+
+      STATE.tabs.forEach((tab, idx) => {
+        const st = document.createElement('div');
+        st.className = 'step-item' + (idx === 0 ? ' active' : '');
+        st.id = 'step_btn_' + idx;
+        st.innerHTML = `<div class="step-num">${idx + 1}</div><div class="step-label">${escapeHtml(tab.Ten_Tab.replace(/^\d+\.\s*/, ''))}</div>`;
+        st.onclick = () => {
+          if (idx <= STATE.currentStep || validateStep(STATE.currentStep)) {
+            goToStep(idx);
+          }
+        };
+        stepper.appendChild(st);
+
+        const panel = document.createElement('div');
+        panel.id = 'panel_' + idx;
+        panel.className = 'form-grid';
+        panel.style.display = idx === 0 ? 'grid' : 'none';
+
+        const tabFields = STATE.fields.filter(f => f.ID_Tab === tab.ID_Tab);
+        tabFields.forEach(f => {
+          const grp = document.createElement('div');
+          grp.className = 'form-group' + (String(f.Do_Rong) === '1' ? ' span-2' : '');
+
+          const isReq = f.Bat_Buoc === 'YES';
+          const reqStar = isReq ? '<span class="req">*</span>' : '';
+          const typeLower = f.Loai_O_Nhap.toLowerCase();
+
+          if (typeLower === 'checkbox') {
+            grp.innerHTML = `
+              <label class="checkbox-box">
+                <input type="checkbox" id="field_${escapeHtml(f.ID_Truong)}" data-field="${escapeHtml(f.ID_Truong)}" ${isReq ? 'data-req="1"' : ''}>
+                <span style="font-size:13.5px; font-weight:600; color:var(--ink);">${escapeHtml(f.Ten_Hien_Thi)}${reqStar}</span>
+              </label>`;
+          } else {
+            const lbl = document.createElement('label');
+            lbl.className = 'form-label';
+            lbl.setAttribute('for', 'field_' + f.ID_Truong);
+            lbl.innerHTML = escapeHtml(f.Ten_Hien_Thi) + reqStar;
+            grp.appendChild(lbl);
+
+            let inputEl;
+            const isTinh = f.ID_Truong.endsWith('_Tinh') || f.Nguon_Du_Lieu === 'DM_Tinh' || typeLower === 'select_tinh';
+            const isXa = f.ID_Truong.endsWith('_Xa') || f.Nguon_Du_Lieu === 'DM_Xa' || typeLower === 'select_xa';
+
+            if (isTinh) {
+              inputEl = document.createElement('select');
+              inputEl.className = 'form-select';
+              inputEl.innerHTML = '<option value="">-- Chọn Tỉnh / Thành phố --</option>';
+              (STATE.danhMuc.DM_Tinh || []).forEach(t => {
+                const o = document.createElement('option');
+                o.value = t.Ten;
+                o.textContent = t.Ten;
+                inputEl.appendChild(o);
+              });
+              inputEl.addEventListener('change', () => {
+                const xaId = f.ID_Truong.replace(/_Tinh$/, '_Xa');
+                populateXaSelect(xaId, inputEl.value);
+                saveDraft();
+              });
+            } else if (isXa) {
+              inputEl = document.createElement('select');
+              inputEl.className = 'form-select';
+              inputEl.innerHTML = '<option value="">-- Vui lòng chọn Tỉnh/TP trước --</option>';
+              inputEl.addEventListener('change', saveDraft);
+            } else if (typeLower.indexOf('select') !== -1 || f.Nguon_Du_Lieu) {
+              inputEl = document.createElement('select');
+              inputEl.className = 'form-select';
+              inputEl.innerHTML = `<option value="">-- ${escapeHtml(f.Placeholder || 'Chọn giá trị')} --</option>`;
+              const list = STATE.danhMuc[f.Nguon_Du_Lieu] || [];
+              list.forEach(item => {
+                const val = typeof item === 'object' ? item.Ten : item;
+                const o = document.createElement('option');
+                o.value = val;
+                o.textContent = val;
+                inputEl.appendChild(o);
+              });
+              inputEl.addEventListener('change', saveDraft);
+            } else if (typeLower === 'textarea') {
+              inputEl = document.createElement('textarea');
+              inputEl.className = 'form-control';
+              inputEl.rows = 3;
+              inputEl.placeholder = f.Placeholder || '';
+              inputEl.addEventListener('input', saveDraft);
+            } else {
+              inputEl = document.createElement('input');
+              inputEl.className = 'form-control';
+              inputEl.type = typeLower === 'number' ? 'tel' : (f.ID_Truong.toLowerCase().includes('email') ? 'email' : 'text');
+              inputEl.placeholder = f.Placeholder || '';
+              if (typeLower === 'date') {
+                inputEl.maxLength = 10;
+                inputEl.inputMode = 'numeric';
+                inputEl.addEventListener('input', () => {
+                  inputEl.value = formatDateInput(inputEl.value);
+                  saveDraft();
+                });
+              } else {
+                inputEl.addEventListener('input', saveDraft);
+              }
+            }
+
+            inputEl.id = 'field_' + f.ID_Truong;
+            inputEl.dataset.field = f.ID_Truong;
+            inputEl.dataset.type = typeLower;
+            if (isReq) inputEl.dataset.req = '1';
+            grp.appendChild(inputEl);
+          }
+          panel.appendChild(grp);
+        });
+        panels.appendChild(panel);
+      });
+      goToStep(0);
+    }
+
+    function goToStep(idx) {
+      STATE.currentStep = idx;
+      STATE.tabs.forEach((t, i) => {
+        const btn = document.getElementById('step_btn_' + i);
+        const pnl = document.getElementById('panel_' + i);
+        if (btn) {
+          btn.classList.toggle('active', i === idx);
+          btn.classList.toggle('done', i < idx);
+        }
+        if (pnl) pnl.style.display = i === idx ? 'grid' : 'none';
+      });
+      const curTab = STATE.tabs[idx];
+      document.getElementById('currentTabTitle').textContent = curTab ? curTab.Ten_Tab : '';
+      document.getElementById('copyAddrBar').style.display = (curTab && curTab.ID_Tab === 'tab_diachi') ? 'flex' : 'none';
+      document.getElementById('btnPrevStep').style.visibility = idx === 0 ? 'hidden' : 'visible';
+      const isLast = idx === STATE.tabs.length - 1;
+      document.getElementById('btnNextStep').style.display = isLast ? 'none' : 'inline-flex';
+      document.getElementById('btnSubmitForm').style.display = isLast ? 'inline-flex' : 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateStep(stepIdx) {
+      const panel = document.getElementById('panel_' + stepIdx);
+      if (!panel) return true;
+      let firstInvalid = null;
+      const els = panel.querySelectorAll('[data-field]');
+      for (const el of els) {
+        el.classList.remove('is-invalid');
+        const req = el.dataset.req === '1';
+        const type = el.dataset.type || '';
+        if (el.type === 'checkbox') {
+          if (req && !el.checked) {
+            firstInvalid = firstInvalid || el;
+            showToast('Vui lòng tích đồng ý cam kết dữ liệu trước khi nộp!', 'warning');
+          }
+        } else {
+          const val = el.value.trim();
+          if (req && !val) {
+            el.classList.add('is-invalid');
+            firstInvalid = firstInvalid || el;
+          } else if (val && type === 'date' && !isValidDateVN(val)) {
+            el.classList.add('is-invalid');
+            firstInvalid = firstInvalid || el;
+            showToast('Ngày tháng cần nhập đúng dạng dd/mm/yyyy (VD: 15/08/2020)', 'warning');
+          }
+        }
+      }
+      if (firstInvalid) {
+        firstInvalid.focus();
+        showToast('Vui lòng kiểm tra các ô bắt buộc được đánh dấu đỏ.', 'warning');
+        return false;
+      }
+      return true;
+    }
+
+    function collectFormData() {
+      const data = {};
+      STATE.fields.forEach(f => {
+        const el = document.getElementById('field_' + f.ID_Truong);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+          data[f.ID_Truong] = el.checked ? 'Đã đồng ý' : '';
+        } else {
+          data[f.ID_Truong] = el.value.trim();
+        }
+      });
+      return data;
+    }
+
+    /**
+     * Đổ dữ liệu vào form và TỰ ĐỘNG kích hoạt lọc Xã/Phường theo Tỉnh (Đã fix lỗi loadDraft!)
+     */
+    function applyDataToForm(dataObj) {
+      if (!dataObj) return;
+      // Bước 1: Gán tất cả các ô không phải _Xa trước
+      STATE.fields.forEach(f => {
+        if (f.ID_Truong.endsWith('_Xa')) return;
+        const el = document.getElementById('field_' + f.ID_Truong);
+        if (!el || dataObj[f.ID_Truong] === undefined) return;
+        if (el.type === 'checkbox') {
+          el.checked = !!dataObj[f.ID_Truong];
+        } else {
+          el.value = dataObj[f.ID_Truong];
+        }
+      });
+      // Bước 2: Kích hoạt lọc toàn bộ các cặp Tỉnh -> Xã rồi gán giá trị Xã đã lưu
+      STATE.fields.forEach(f => {
+        if (f.ID_Truong.endsWith('_Tinh')) {
+          const tEl = document.getElementById('field_' + f.ID_Truong);
+          const xaId = f.ID_Truong.replace(/_Tinh$/, '_Xa');
+          if (tEl && tEl.value) {
+            populateXaSelect(xaId, tEl.value, dataObj[xaId] || '');
+          }
+        }
+      });
+    }
+
+    function saveDraft() {
+      if (STATE.editingTicket) return;
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(collectFormData()));
+      } catch (e) {}
+    }
+
+    function loadDraft() {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          applyDataToForm(JSON.parse(raw));
+        }
+      } catch (e) {}
+    }
+
+    function enterRevisionMode(record, note, editToken = '') {
+      STATE.editingTicket = record.Ma_Ticket;
+      STATE.editToken = editToken || '';
+      applyDataToForm(record);
+      document.getElementById('editModeTag').style.display = 'inline-flex';
+      document.getElementById('editModeTag').textContent = '✏️ Đang bổ sung: ' + record.Ma_Ticket;
+      document.getElementById('btnSubmitForm').textContent = '💾 Lưu & Gửi duyệt lại hồ sơ';
+      document.getElementById('revBanner').classList.add('show');
+      document.getElementById('revBannerTitle').textContent = '✏️ Đang chỉnh sửa bổ sung hồ sơ ' + record.Ma_Ticket;
+      document.getElementById('revBannerNote').textContent = note ? ('Ghi chú từ nhà trường: ' + note) : 'Vui lòng kiểm tra sửa các mục còn thiếu và bấm Gửi duyệt lại.';
+      document.getElementById('btnLoadRevision').style.display = 'none';
+      document.getElementById('btnCancelRevision').style.display = 'inline-flex';
+      document.getElementById('closedBox').classList.remove('show');
+      document.getElementById('formContainer').style.display = 'block';
+      goToStep(0);
+    }
+
+    function exitRevisionMode() {
+      STATE.editingTicket = '';
+      STATE.editToken = '';
+      document.getElementById('editModeTag').style.display = 'none';
+      document.getElementById('btnSubmitForm').textContent = '✅ Nộp hồ sơ tuyển sinh';
+      document.getElementById('btnCancelRevision').style.display = 'none';
+      if (STATE.pendingRevision) {
+        document.getElementById('btnLoadRevision').style.display = 'inline-flex';
+      } else {
+        document.getElementById('revBanner').classList.remove('show');
+      }
+      document.getElementById('admissionForm').reset();
+      loadDraft();
+    }
+
+    /**
+     * Vẽ Thẻ Hồ Sơ QR sắc nét trên Canvas (Hỗ trợ cả tải PNG và nhấn giữ lưu trên điện thoại)
+     */
+    function generateTicketCard(info) {
+      return new Promise((resolve) => {
+        const qrHost = document.getElementById('hiddenQrHost');
+        qrHost.innerHTML = '';
+        new QRCode(qrHost, {
+          text: info.ticket,
+          width: 240,
+          height: 240,
+          colorDark: '#182b45',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+
+        setTimeout(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 760;
+          canvas.height = 960;
+          const ctx = canvas.getContext('2d');
+
+          // Nền trắng bo viền
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Header xanh lá
+          const grad = ctx.createLinearGradient(0, 0, canvas.width, 210);
+          grad.addColorStop(0, '#2e6b18');
+          grad.addColorStop(1, '#78b833');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, canvas.width, 210);
+
+          ctx.fillStyle = '#f4c43f';
+          ctx.font = 'bold 22px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('PHIẾU XÁC NHẬN ĐĂNG KÝ TUYỂN SINH', canvas.width / 2, 62);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 30px sans-serif';
+          ctx.fillText((STATE.config.TEN_TRUONG || 'TRƯỜNG TIỂU HỌC NGÔI SAO').toUpperCase(), canvas.width / 2, 114);
+
+          ctx.font = '600 21px sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.92)';
+          ctx.fillText('Năm học: ' + (STATE.config.NAM_HOC || '2026 - 2027'), canvas.width / 2, 158);
+
+          // Mã hồ sơ nổi bật
+          ctx.fillStyle = '#f4fbea';
+          ctx.fillRect(150, 240, 460, 74);
+          ctx.strokeStyle = '#4e972e';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(150, 240, 460, 74);
+
+          ctx.fillStyle = '#2e6b18';
+          ctx.font = 'bold 40px monospace';
+          ctx.fillText(info.ticket, canvas.width / 2, 290);
+
+          // Vẽ QR code
+          const qrCanvas = qrHost.querySelector('canvas');
+          const qrImg = qrHost.querySelector('img');
+          const drawRest = () => {
+            // Thông tin học sinh
+            ctx.textAlign = 'left';
+            const rows = [
+              ['Họ và tên học sinh:', info.hoTen || '—'],
+              ['Ngày tháng năm sinh:', info.ngaySinh || '—'],
+              ['Khối lớp đăng ký:', info.khoiLop || '—'],
+              ['Thời gian đăng ký:', info.thoiGian || '—']
+            ];
+            let y = 655;
+            rows.forEach(([lbl, val]) => {
+              ctx.fillStyle = '#52657c';
+              ctx.font = '600 22px sans-serif';
+              ctx.fillText(lbl, 75, y);
+              ctx.fillStyle = '#182b45';
+              ctx.font = 'bold 24px sans-serif';
+              ctx.fillText(val, 325, y);
+              y += 50;
+            });
+
+            // Footer hướng dẫn
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 865, canvas.width, 95);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#4e972e';
+            ctx.font = 'bold 20px sans-serif';
+            ctx.fillText('Vui lòng xuất trình mã QR này tại bàn tiếp nhận hồ sơ của Nhà trường', canvas.width / 2, 905);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 18px sans-serif';
+            ctx.fillText('Hotline hỗ trợ: ' + (STATE.config.HOTLINE || ''), canvas.width / 2, 938);
+
+            resolve(canvas.toDataURL('image/png'));
+          };
+
+          if (qrCanvas) {
+            ctx.drawImage(qrCanvas, (canvas.width - 260) / 2, 340, 260, 260);
+            drawRest();
+          } else if (qrImg) {
+            qrImg.onload = () => {
+              ctx.drawImage(qrImg, (canvas.width - 260) / 2, 340, 260, 260);
+              drawRest();
+            };
+            if (qrImg.complete) {
+              ctx.drawImage(qrImg, (canvas.width - 260) / 2, 340, 260, 260);
+              drawRest();
+            }
+          } else {
+            drawRest();
+          }
+        }, 120);
+      });
+    }
+
+    async function showTicketCardModal(info, headingText) {
+      const dataUrl = await generateTicketCard(info);
+      document.getElementById('ticketModalHeading').textContent = headingText || 'Nộp Hồ Sơ Thành Công!';
+      document.getElementById('ticketCardImage').src = dataUrl;
+      const dl = document.getElementById('btnDownloadQR');
+      dl.href = dataUrl;
+      dl.download = 'The_Ho_So_' + info.ticket + '.png';
+      openModal('ticketModal');
+    }
+
+    // Nút điều hướng & nộp hồ sơ (có Auto-Retry 3 lần nếu máy chủ bận)
+    document.getElementById('btnPrevStep').addEventListener('click', () => {
+      if (STATE.currentStep > 0) goToStep(STATE.currentStep - 1);
+    });
+    document.getElementById('btnNextStep').addEventListener('click', () => {
+      if (validateStep(STATE.currentStep)) goToStep(STATE.currentStep + 1);
+    });
+    document.getElementById('btnClearDraft').addEventListener('click', () => {
+      if (confirm('Xóa toàn bộ nội dung nháp đang điền?')) {
+        localStorage.removeItem(DRAFT_KEY);
+        document.getElementById('admissionForm').reset();
+        showToast('Đã xóa bản nháp.', 'info');
+      }
+    });
+
+    document.getElementById('btnSubmitForm').addEventListener('click', async () => {
+      for (let i = 0; i < STATE.tabs.length; i++) {
+        if (!validateStep(i)) {
+          goToStep(i);
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnSubmitForm');
+      btn.disabled = true;
+      const payload = {
+        formData: collectFormData(),
+        deviceId: getDeviceId(),
+        editing_ticket: STATE.editingTicket,
+        edit_token: STATE.editToken,
+        bypass_code: STATE.bypassCode,
+        website_url_hp: document.getElementById('website_url_hp').value,
+        form_open_ts: STATE.formOpenTs
+      };
+
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          setLoading(true, attempt === 1 ? 'Đang gửi hồ sơ lên hệ thống...' : `⏳ Lượng truy cập đang đông, tự động thử lại (${attempt}/${maxAttempts})...`);
+          const res = await callBackend('submitHoSo', payload);
+          setLoading(false);
+          if (res.success) {
+            if (!STATE.editingTicket) localStorage.removeItem(DRAFT_KEY);
+            await showTicketCardModal(res, res.isEdit ? 'Cập Nhật Bổ Sung Thành Công!' : 'Nộp Hồ Sơ Thành Công!');
+            if (STATE.editingTicket) {
+              STATE.pendingRevision = null;
+              exitRevisionMode();
+            } else {
+              document.getElementById('admissionForm').reset();
+              goToStep(0);
+              STATE.formOpenTs = Date.now();
+            }
+            btn.disabled = false;
+            return;
+          } else {
+            if (res.message && res.message.includes('đang đông') && attempt < maxAttempts) {
+              await new Promise(r => setTimeout(r, 2800));
+              continue;
+            }
+            showToast(res.message || 'Không thể nộp hồ sơ.', 'error', 5500);
+            btn.disabled = false;
+            return;
+          }
+        } catch (err) {
+          if (attempt < maxAttempts) {
+            await new Promise(r => setTimeout(r, 2500));
+            continue;
+          }
+          setLoading(false);
+          showToast('Lỗi kết nối: ' + err.message, 'error', 5500);
+          btn.disabled = false;
+        }
+      }
+    });
+
+    // Tra cứu hồ sơ đa thiết bị
+    document.getElementById('btnOpenLookup').addEventListener('click', () => openModal('lookupModal'));
+    document.getElementById('btnLookupClosed').addEventListener('click', () => openModal('lookupModal'));
+    document.getElementById('btnLoadRevision').addEventListener('click', () => {
+      if (STATE.pendingRevision) {
+        enterRevisionMode(STATE.pendingRevision.record, STATE.pendingRevision.note, '');
+      }
+    });
+    document.getElementById('btnCancelRevision').addEventListener('click', exitRevisionMode);
+
+    document.getElementById('btnDoLookup').addEventListener('click', async () => {
+      const q = document.getElementById('lkQuery').value.trim();
+      const dob = document.getElementById('lkDob').value.trim();
+      const box = document.getElementById('lookupResultBox');
+      if (!q || !isValidDateVN(dob)) {
+        showToast('Vui lòng nhập Mã hồ sơ/SĐT và Ngày sinh đúng định dạng dd/mm/yyyy.', 'warning');
+        return;
+      }
+      setLoading(true, 'Đang tra cứu hồ sơ...');
+      try {
+        const res = await callBackend('lookupHoSo', { query: q, ngaySinh: dob });
+        setLoading(false);
+        box.style.display = 'block';
+        if (!res.success || !res.found) {
+          box.innerHTML = `<div style="color:var(--danger); font-weight:700;">❌ ${escapeHtml(res.message)}</div>`;
+          return;
+        }
+        const r = res.record;
+        const badgeCls = r.Trang_Thai === 'Đã duyệt' ? 'badge-da-duyet' :
+          r.Trang_Thai === 'Chờ bổ sung' ? 'badge-cho-bo-sung' :
+          r.Trang_Thai === 'Đã loại' ? 'badge-da-loai' : 'badge-cho-duyet';
+
+        box.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+            <strong style="font-size:16px; color:var(--brand-dark);">${escapeHtml(r.Ma_Ticket)}</strong>
+            <span class="badge ${badgeCls}">${escapeHtml(r.Trang_Thai)}</span>
+          </div>
+          <div style="font-size:13.5px; line-height:1.7;">
+            <div><b>Học sinh:</b> ${escapeHtml(r.Ho_Ten_HS)}</div>
+            <div><b>Ngày sinh:</b> ${escapeHtml(r.Ngay_Sinh)} | <b>Khối:</b> ${escapeHtml(r.Khoi_Lop)}</div>
+            <div><b>Thời gian nộp:</b> ${escapeHtml(r.Thoi_Gian)}</div>
+            ${res.note ? `<div style="margin-top:6px; padding:8px 10px; background:#fffbeb; border-radius:8px; color:#92400e;"><b>Ghi chú nhà trường:</b> ${escapeHtml(res.note)}</div>` : ''}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" id="btnReprintCard">🎫 Tải lại Thẻ QR</button>
+            ${r.Trang_Thai === 'Chờ bổ sung' ? '<button class="btn btn-warning btn-sm" id="btnEditFromLookup">✏️ Sửa & Bổ sung hồ sơ ngay</button>' : ''}
+          </div>`;
+
+        document.getElementById('btnReprintCard').onclick = () => {
+          closeModal('lookupModal');
+          showTicketCardModal({
+            ticket: r.Ma_Ticket,
+            hoTen: r.Ho_Ten_HS,
+            ngaySinh: r.Ngay_Sinh,
+            khoiLop: r.Khoi_Lop,
+            thoiGian: r.Thoi_Gian
+          }, 'Thẻ Hồ Sơ Tuyển Sinh');
+        };
+        const editBtn = document.getElementById('btnEditFromLookup');
+        if (editBtn) {
+          editBtn.onclick = () => {
+            closeModal('lookupModal');
+            enterRevisionMode(r, res.note, res.editToken);
+          };
+        }
+      } catch (err) {
+        setLoading(false);
+        showToast('Lỗi tra cứu: ' + err.message, 'error');
+      }
+    });
+
+    // Khởi chạy trang
+    (async function init() {
+      try {
+        const res = await callBackend('getPublicData');
+        if (!res.success) throw new Error(res.message);
+        STATE.config = res.config || {};
+        STATE.tabs = res.tabs || [];
+        STATE.fields = res.fields || [];
+        STATE.danhMuc = res.danhMuc || {};
+
+        document.getElementById('phSchoolName').textContent = STATE.config.TEN_TRUONG || 'TRƯỜNG TIỂU HỌC NGÔI SAO';
+        document.getElementById('phYear').textContent = 'Tuyển sinh năm học ' + (STATE.config.NAM_HOC || '2026 - 2027');
+        document.getElementById('phHeroSub').textContent = 'NĂM HỌC ' + (STATE.config.NAM_HOC || '2026 - 2027');
+        document.getElementById('phFooterHotline').textContent = 'Hotline hỗ trợ tuyển sinh: ' + (STATE.config.HOTLINE || '');
+        renderBrandLogo(document.getElementById('phLogo'), STATE.config.URL_LOGO);
+
+        if (STATE.config.URL_ANH_TUYENSINH && /^https?:\/\//i.test(STATE.config.URL_ANH_TUYENSINH)) {
+          const art = document.getElementById('phHeroArt');
+          art.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = STATE.config.URL_ANH_TUYENSINH;
+          img.alt = 'Ảnh tuyển sinh';
+          art.appendChild(img);
+        }
+
+        buildFormUI();
+        loadDraft();
+
+        const isOpen = String(STATE.config.TRANG_THAI || 'MỞ').toUpperCase() === 'MỞ';
+        if (!isOpen && !STATE.bypassCode) {
+          document.getElementById('formContainer').style.display = 'none';
+          document.getElementById('closedBox').classList.add('show');
+          document.getElementById('closedMsg').textContent = STATE.config.THONG_BAO_DONG || 'Hệ thống tuyển sinh đang tạm đóng.';
+        }
+
+        // Kiểm tra tự động xem máy này có hồ sơ "Chờ bổ sung" không
+        callBackend('getRevisionByDevice', { deviceId: getDeviceId() }).then(rev => {
+          if (rev && rev.success && rev.found) {
+            STATE.pendingRevision = rev;
+            document.getElementById('revBanner').classList.add('show');
+            document.getElementById('revBannerTitle').textContent = `⚠️ Hồ sơ ${rev.record.Ma_Ticket} (${rev.record.Ho_Ten_HS}) đang cần bổ sung`;
+            document.getElementById('revBannerNote').textContent = rev.note || 'Nhà trường yêu cầu kiểm tra và bổ sung thêm thông tin.';
+          }
+        }).catch(() => {});
+
+        setLoading(false);
+      } catch (err) {
+        setLoading(false);
+        showToast(err.message, 'error', 7000);
+      }
+    })();
+  </script>
+</body>
+</html>

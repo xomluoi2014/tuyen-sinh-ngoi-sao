@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cổng Quản Trị & Báo Cáo – Trường Tiểu học Ngôi Sao</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .adm-layout { max-width: 1240px; margin: 18px auto 40px; padding: 0 16px; display: none; }
+    .adm-layout.active { display: block; }
+    .adm-nav {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+      background: #fff; padding: 8px; border-radius: 16px; border: 1px solid var(--brand-border);
+    }
+    .adm-tab-btn {
+      padding: 9px 16px; border-radius: 10px; border: none; background: transparent;
+      font-family: inherit; font-weight: 700; font-size: 13.5px; color: var(--ink-muted); cursor: pointer;
+    }
+    .adm-tab-btn.active { background: var(--brand-primary); color: #fff; }
+    .adm-pane { display: none; }
+    .adm-pane.active { display: block; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .kpi-card {
+      background: #fff; border: 1px solid var(--brand-border); border-radius: 16px;
+      padding: 16px; box-shadow: var(--shadow-sm);
+    }
+    .kpi-card .k-num { font-size: 28px; font-weight: 800; line-height: 1.1; margin-top: 6px; }
+    .kpi-card .k-lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
+
+    .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .bar-label { width: 140px; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 22px; background: #eef4ea; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand-primary), var(--brand-light)); border-radius: 999px; transition: width 0.4s ease; }
+    .bar-val { width: 48px; text-align: right; font-weight: 800; font-size: 13.5px; color: var(--brand-dark); }
+
+    .tbl-wrap { overflow-x: auto; }
+    table.adm-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.adm-tbl th, table.adm-tbl td {
+      border-bottom: 1px solid #e5efe0; padding: 8px 8px; text-align: left; vertical-align: middle;
+    }
+    table.adm-tbl th { background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; white-space: nowrap; }
+    table.adm-tbl input, table.adm-tbl select {
+      padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 7px; font-family: inherit; font-size: 12.5px; width: 100%;
+    }
+
+    .pwd-cell { display: flex; align-items: center; gap: 4px; }
+    .pwd-cell button {
+      border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 7px; padding: 5px 8px; cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <div id="loaderText" style="font-weight:700; color:var(--brand-dark);">Đang tải cổng quản trị...</div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-symbol" id="admLogo">⭐</div>
+      <div>
+        <div class="brand-title" id="admSchool">CỔNG QUẢN TRỊ & BÁO CÁO TUYỂN SINH</div>
+        <div class="brand-sub" id="admUser">Vui lòng đăng nhập tài khoản Admin / Chủ đầu tư</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <a href="nhanvien.html" class="btn btn-outline btn-sm">🖥️ Cổng Nhân viên</a>
+      <button class="btn btn-outline btn-sm" id="btnAdmLogout" style="display:none;">Đăng xuất</button>
+      <a href="index.html" class="btn btn-outline btn-sm">🏠</a>
+    </div>
+  </header>
+
+  <!-- Đăng nhập -->
+  <section id="admLoginBox" style="max-width:400px; margin:48px auto; padding:0 16px;">
+    <div class="card">
+      <div style="text-align:center; margin-bottom:14px;">
+        <div style="font-size:40px;">🛡️</div>
+        <h2 style="margin:6px 0 4px; color:var(--brand-dark);">Đăng Nhập Quản Trị</h2>
+        <p style="margin:0; font-size:13px; color:var(--ink-muted);">Dành cho Admin hệ thống và Chủ đầu tư</p>
+      </div>
+      <form id="admLoginForm">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Tài khoản</label>
+          <input type="text" id="aUser" class="form-control" placeholder="admin hoặc chudautu" required>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Mật khẩu</label>
+          <input type="password" id="aPass" class="form-control" placeholder="Nhập mật khẩu" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Đăng nhập</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Nội dung Quản trị -->
+  <main class="adm-layout" id="admMain">
+    <nav class="adm-nav" id="admNav">
+      <button class="adm-tab-btn active" data-pane="paneDash">📊 Báo cáo tổng quan</button>
+      <button class="adm-tab-btn admin-only" data-pane="paneConfig">⚙️ Cấu hình hệ thống</button>
+      <button class="adm-tab-btn admin-only" data-pane="paneForm">🧩 Trình tạo Form (Form Builder)</button>
+      <button class="adm-tab-btn admin-only" data-pane="paneAccounts">👥 Quản lý Nhân sự</button>
+      <button class="adm-tab-btn" data-pane="paneLogs">📜 Nhật ký hệ thống</button>
+    </nav>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section class="adm-pane active" id="paneDash">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="k-lbl">Tổng hồ sơ</div><div class="k-num" id="kTotal">0</div></div>
+        <div class="kpi-card"><div class="k-lbl">Chờ duyệt</div><div class="k-num" id="kCho" style="color:#0369a1;">0</div></div>
+        <div class="kpi-card"><div class="k-lbl">Đã duyệt</div><div class="k-num" id="kOk" style="color:#15803d;">0</div></div>
+        <div class="kpi-card"><div class="k-lbl">Chờ bổ sung</div><div class="k-num" id="kBs" style="color:#b45309;">0</div></div>
+        <div class="kpi-card"><div class="k-lbl">Đã loại</div><div class="k-num" id="kLoai" style="color:#b91c1c;">0</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <h3 style="margin:0; color:var(--brand-dark);">📈 Phân bổ hồ sơ hợp lệ theo Khối lớp</h3>
+          <button class="btn btn-primary btn-sm" id="btnDashExcel">⬇️ Xuất báo cáo Excel (.xlsx)</button>
+        </div>
+        <div id="gradeBars"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CẤU HÌNH HỆ THỐNG -->
+    <section class="adm-pane" id="paneConfig">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; color:var(--brand-dark);">⚙️ Cấu Hình Chung (Bảng Cau_Hinh)</h3>
+            <div style="font-size:12.5px; color:var(--ink-muted);">Bật/tắt cổng tuyển sinh, cập nhật Logo, Ảnh Banner, Mã ngoại lệ và Mẫu in Google Docs.</div>
+          </div>
+          <button class="btn btn-primary" id="btnSaveConfig">💾 Lưu Cấu Hình</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="adm-tbl">
+            <thead>
+              <tr><th style="width:200px;">Khóa cấu hình</th><th>Giá trị</th><th style="width:260px;">Ghi chú</th></tr>
+            </thead>
+            <tbody id="cfgBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: FORM BUILDER (Có nút Thêm/Xóa trường + tự đồng bộ cột Ho_So!) -->
+    <section class="adm-pane" id="paneForm">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; color:var(--brand-dark);">🧩 Trình Tạo Biểu Mẫu Động (Form Builder)</h3>
+            <div style="font-size:12.5px; color:var(--ink-muted);">Khi thêm trường mới và bấm Lưu, hệ thống sẽ <b>tự động thêm cột tương ứng vào bảng Ho_So</b>.</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline" id="btnAddField">➕ Thêm trường mới</button>
+            <button class="btn btn-primary" id="btnSaveForm">💾 Lưu Form Builder</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="adm-tbl">
+            <thead>
+              <tr>
+                <th style="width:130px;">ID_Truong</th>
+                <th style="width:170px;">Tên hiển thị</th>
+                <th style="width:125px;">Tab</th>
+                <th style="width:65px;">Thứ tự</th>
+                <th style="width:115px;">Kiểu nhập</th>
+                <th style="width:130px;">Nguồn DM</th>
+                <th style="width:75px;">Độ rộng</th>
+                <th style="width:75px;">Bắt buộc</th>
+                <th style="width:90px;">Hiển thị</th>
+                <th style="width:150px;">Placeholder</th>
+                <th style="width:50px;">Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="formBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: QUẢN LÝ NHÂN SỰ (Ẩn mật khẩu dạng ••••• kèm nút con mắt 👁️!) -->
+    <section class="adm-pane" id="paneAccounts">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; color:var(--brand-dark);">👥 Quản Lý Tài Khoản Nhân Sự</h3>
+            <div style="font-size:12.5px; color:var(--ink-muted);">Mật khẩu được che kín mặc định khi trình chiếu, bấm biểu tượng 👁️ để xem khi cần nhắc mật khẩu cho nhân viên.</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline" id="btnAddAccount">➕ Thêm tài khoản</button>
+            <button class="btn btn-primary" id="btnSaveAccounts">💾 Lưu Nhân sự</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="adm-tbl">
+            <thead>
+              <tr>
+                <th style="width:160px;">Tài khoản</th>
+                <th style="width:200px;">Mật khẩu</th>
+                <th style="width:140px;">Vai trò</th>
+                <th style="width:130px;">Trạng thái</th>
+                <th>Ghi chú</th>
+                <th style="width:60px;">Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="accBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: NHẬT KÝ -->
+    <section class="adm-pane" id="paneLogs">
+      <div class="card">
+        <h3 style="margin:0 0 12px; color:var(--brand-dark);">📜 100 Thao Tác Hệ Thống Gần Nhất</h3>
+        <div class="tbl-wrap">
+          <table class="adm-tbl">
+            <thead>
+              <tr><th>Thời gian</th><th>Mã hồ sơ</th><th>Người thực hiện</th><th>Hành động</th><th>Ghi chú</th></tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const ADM = { data: null };
+
+    function setLoading(show, text = 'Đang xử lý...') {
+      document.getElementById('loaderText').textContent = text;
+      document.getElementById('loader').classList.toggle('open', show);
+    }
+
+    // Chuyển tab
+    document.querySelectorAll('.adm-tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.adm-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.adm-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.pane).classList.add('active');
+      };
+    });
+
+    function renderDashboard() {
+      const st = ADM.data.stats;
+      document.getElementById('kTotal').textContent = st.total;
+      document.getElementById('kCho').textContent = st.choDuyet;
+      document.getElementById('kOk').textContent = st.daDuyet;
+      document.getElementById('kBs').textContent = st.choBoSung;
+      document.getElementById('kLoai').textContent = st.daLoai;
+
+      const bars = document.getElementById('gradeBars');
+      bars.innerHTML = '';
+      const entries = Object.entries(st.byGrade || {});
+      const maxVal = Math.max(1, ...entries.map(e => e[1]));
+      if (!entries.length) {
+        bars.innerHTML = '<div style="color:var(--ink-muted);">Chưa có dữ liệu hồ sơ.</div>';
+        return;
+      }
+      entries.sort((a, b) => a[0].localeCompare(b[0])).forEach(([g, cnt]) => {
+        const pct = Math.round((cnt / maxVal) * 100);
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML = `
+          <div class="bar-label">${escapeHtml(g)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-val">${cnt}</div>`;
+        bars.appendChild(row);
+      });
+    }
+
+    function renderConfigTable() {
+      const tb = document.getElementById('cfgBody');
+      tb.innerHTML = '';
+      (ADM.data.configRows || []).forEach(c => {
+        if (c.KEY === 'MAU_XUAT_EXCEL_JSON') return;
+        const tr = document.createElement('tr');
+        const valInput = c.KEY === 'TRANG_THAI'
+          ? `<select data-cfg-key="${escapeHtml(c.KEY)}">
+               <option value="MỞ" ${c.VALUE.toUpperCase() === 'MỞ' ? 'selected' : ''}>MỞ (Cho phép phụ huynh đăng ký)</option>
+               <option value="ĐÓNG" ${c.VALUE.toUpperCase() !== 'MỞ' ? 'selected' : ''}>ĐÓNG (Tạm đóng cổng)</option>
+             </select>`
+          : `<input type="text" data-cfg-key="${escapeHtml(c.KEY)}" value="${escapeHtml(c.VALUE)}">`;
+        tr.innerHTML = `
+          <td><b>${escapeHtml(c.KEY)}</b></td>
+          <td>${valInput}</td>
+          <td style="color:var(--ink-muted); font-size:12px;">${escapeHtml(c.GHI_CHU)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function createFormRowTr(f) {
+      const tr = document.createElement('tr');
+      const tabsOpts = (ADM.data.tabs || []).map(t =>
+        `<option value="${escapeHtml(t.ID_Tab)}" ${t.ID_Tab === f.ID_Tab ? 'selected' : ''}>${escapeHtml(t.ID_Tab)}</option>`
+      ).join('');
+      const types = ['Text', 'Date', 'Select_DM', 'Select_Tinh', 'Select_Xa', 'Number', 'Textarea', 'Checkbox'];
+      const typeOpts = types.map(tp => `<option value="${tp}" ${tp === f.Loai_O_Nhap ? 'selected' : ''}>${tp}</option>`).join('');
+
+      tr.innerHTML = `
+        <td><input type="text" class="fb-id" value="${escapeHtml(f.ID_Truong || '')}" placeholder="VD: So_Thich_Be"></td>
+        <td><input type="text" class="fb-name" value="${escapeHtml(f.Ten_Hien_Thi || '')}"></td>
+        <td><select class="fb-tab">${tabsOpts}</select></td>
+        <td><input type="number" class="fb-order" value="${escapeHtml(f.Thu_Tu || 1)}"></td>
+        <td><select class="fb-type">${typeOpts}</select></td>
+        <td><input type="text" class="fb-src" value="${escapeHtml(f.Nguon_Du_Lieu || '')}" placeholder="DM_..."></td>
+        <td>
+          <select class="fb-width">
+            <option value="0.5" ${String(f.Do_Rong) === '0.5' ? 'selected' : ''}>0.5</option>
+            <option value="1" ${String(f.Do_Rong) !== '0.5' ? 'selected' : ''}>1</option>
+          </select>
+        </td>
+        <td>
+          <select class="fb-req">
+            <option value="YES" ${f.Bat_Buoc === 'YES' ? 'selected' : ''}>YES</option>
+            <option value="NO" ${f.Bat_Buoc !== 'YES' ? 'selected' : ''}>NO</option>
+          </select>
+        </td>
+        <td>
+          <select class="fb-show">
+            <option value="YES" ${f.Hien_Thi === 'YES' ? 'selected' : ''}>YES</option>
+            <option value="STAFF" ${f.Hien_Thi === 'STAFF' ? 'selected' : ''}>STAFF</option>
+            <option value="NO" ${f.Hien_Thi === 'NO' ? 'selected' : ''}>NO</option>
+          </select>
+        </td>
+        <td><input type="text" class="fb-ph" value="${escapeHtml(f.Placeholder || '')}"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">🗑️</button></td>`;
+      return tr;
+    }
+
+    function renderFormBuilder() {
+      const tb = document.getElementById('formBody');
+      tb.innerHTML = '';
+      (ADM.data.fields || []).forEach(f => tb.appendChild(createFormRowTr(f)));
+    }
+
+    function createAccountTr(a) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="ac-u" value="${escapeHtml(a.Tai_Khoan || '')}"></td>
+        <td>
+          <div class="pwd-cell">
+            <input type="password" class="ac-p" value="${escapeHtml(a.Mat_Khau || '')}">
+            <button type="button" title="Hiện/Ẩn mật khẩu" onclick="const inp=this.previousElementSibling; inp.type=inp.type==='password'?'text':'password'; this.textContent=inp.type==='password'?'👁️':'🙈';">👁️</button>
+          </div>
+        </td>
+        <td>
+          <select class="ac-r">
+            <option value="Admin" ${a.Vai_Tro === 'Admin' ? 'selected' : ''}>Admin</option>
+            <option value="Nhân viên" ${a.Vai_Tro === 'Nhân viên' ? 'selected' : ''}>Nhân viên</option>
+            <option value="Chủ đầu tư" ${a.Vai_Tro === 'Chủ đầu tư' ? 'selected' : ''}>Chủ đầu tư</option>
+          </select>
+        </td>
+        <td>
+          <select class="ac-s">
+            <option value="Hoạt động" ${a.Trang_Thai !== 'Khóa' ? 'selected' : ''}>Hoạt động</option>
+            <option value="Khóa" ${a.Trang_Thai === 'Khóa' ? 'selected' : ''}>Khóa</option>
+          </select>
+        </td>
+        <td><input type="text" class="ac-n" value="${escapeHtml(a.Ghi_Chu || '')}"></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">🗑️</button></td>`;
+      return tr;
+    }
+
+    function renderAccounts() {
+      const tb = document.getElementById('accBody');
+      tb.innerHTML = '';
+      (ADM.data.accounts || []).forEach(a => tb.appendChild(createAccountTr(a)));
+    }
+
+    function renderLogs() {
+      const tb = document.getElementById('logBody');
+      tb.innerHTML = '';
+      (ADM.data.logs || []).forEach(l => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="white-space:nowrap;">${escapeHtml(l.Thoi_Gian)}</td>
+          <td><b>${escapeHtml(l.Ma_Ticket)}</b></td>
+          <td>${escapeHtml(l.Nguoi_Thuc_Hien)}</td>
+          <td>${escapeHtml(l.Hanh_Dong)}</td>
+          <td>${escapeHtml(l.Ghi_Chu)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    document.getElementById('btnAddField').onclick = () => {
+      const tb = document.getElementById('formBody');
+      tb.appendChild(createFormRowTr({
+        ID_Truong: 'Truong_Moi_' + (tb.children.length + 1),
+        Ten_Hien_Thi: 'Trường mới',
+        ID_Tab: 'tab_hs',
+        Thu_Tu: tb.children.length + 1,
+        Loai_O_Nhap: 'Text',
+        Nguon_Du_Lieu: '',
+        Do_Rong: '0.5',
+        Bat_Buoc: 'NO',
+        Hien_Thi: 'YES',
+        Placeholder: ''
+      }));
+      tb.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    document.getElementById('btnAddAccount').onclick = () => {
+      const tb = document.getElementById('accBody');
+      tb.appendChild(createAccountTr({ Tai_Khoan: '', Mat_Khau: '', Vai_Tro: 'Nhân viên', Trang_Thai: 'Hoạt động', Ghi_Chu: '' }));
+    };
+
+    document.getElementById('btnSaveConfig').onclick = async () => {
+      const items = [];
+      document.querySelectorAll('[data-cfg-key]').forEach(el => {
+        items.push({ KEY: el.dataset.cfgKey, VALUE: el.value.trim() });
+      });
+      setLoading(true, 'Đang lưu cấu hình...');
+      try {
+        const res = await callBackend('adminSaveConfig', { configRows: items });
+        setLoading(false);
+        showToast(res.message, res.success ? 'success' : 'error');
+      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+    };
+
+    document.getElementById('btnSaveForm').onclick = async () => {
+      const fields = [];
+      document.querySelectorAll('#formBody tr').forEach((tr, idx) => {
+        const id = tr.querySelector('.fb-id').value.trim();
+        if (!id) return;
+        fields.push({
+          ID_Truong: id,
+          Ten_Hien_Thi: tr.querySelector('.fb-name').value.trim(),
+          ID_Tab: tr.querySelector('.fb-tab').value,
+          Thu_Tu: Number(tr.querySelector('.fb-order').value) || (idx + 1),
+          Loai_O_Nhap: tr.querySelector('.fb-type').value,
+          Nguon_Du_Lieu: tr.querySelector('.fb-src').value.trim(),
+          Do_Rong: tr.querySelector('.fb-width').value,
+          Bat_Buoc: tr.querySelector('.fb-req').value,
+          Hien_Thi: tr.querySelector('.fb-show').value,
+          Placeholder: tr.querySelector('.fb-ph').value.trim()
+        });
+      });
+      setLoading(true, 'Đang lưu Form Builder & đồng bộ cột bảng Ho_So...');
+      try {
+        const res = await callBackend('adminSaveForm', { fields });
+        setLoading(false);
+        showToast(res.message, res.success ? 'success' : 'error', 5000);
+      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+    };
+
+    document.getElementById('btnSaveAccounts').onclick = async () => {
+      const accounts = [];
+      document.querySelectorAll('#accBody tr').forEach(tr => {
+        const u = tr.querySelector('.ac-u').value.trim();
+        const p = tr.querySelector('.ac-p').value.trim();
+        if (!u || !p) return;
+        accounts.push({
+          Tai_Khoan: u,
+          Mat_Khau: p,
+          Vai_Tro: tr.querySelector('.ac-r').value,
+          Trang_Thai: tr.querySelector('.ac-s').value,
+          Ghi_Chu: tr.querySelector('.ac-n').value.trim()
+        });
+      });
+      setLoading(true, 'Đang lưu danh sách tài khoản...');
+      try {
+        const res = await callBackend('adminSaveAccounts', { accounts });
+        setLoading(false);
+        showToast(res.message, res.success ? 'success' : 'error');
+      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+    };
+
+    document.getElementById('btnDashExcel').onclick = () => {
+      const recs = (ADM.data && ADM.data.records) || [];
+      if (!recs.length) return showToast('Chưa có hồ sơ để xuất.', 'warning');
+      const ws = XLSX.utils.json_to_sheet(recs);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Bao_Cao_Tuyen_Sinh');
+      XLSX.writeFile(wb, `Bao_Cao_Tuyen_Sinh_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      showToast('Đã tải xuống file Excel báo cáo!', 'success');
+    };
+
+    async function loadAdmin() {
+      setLoading(true, 'Đang tải dữ liệu quản trị...');
+      try {
+        const res = await callBackend('getAdminData');
+        setLoading(false);
+        if (!res.success) {
+          document.getElementById('admLoginBox').style.display = 'block';
+          document.getElementById('admMain').classList.remove('active');
+          document.getElementById('btnAdmLogout').style.display = 'none';
+          if (res.message) showToast(res.message, 'warning');
+          return;
+        }
+        ADM.data = res;
+        document.getElementById('admLoginBox').style.display = 'none';
+        document.getElementById('admMain').classList.add('active');
+        document.getElementById('btnAdmLogout').style.display = 'inline-flex';
+        document.getElementById('admSchool').textContent = (res.publicConfig.TEN_TRUONG || 'TIỂU HỌC NGÔI SAO') + ' — QUẢN TRỊ';
+        document.getElementById('admUser').textContent = `Đăng nhập: ${res.session.username} (${res.session.displayRole})`;
+        renderBrandLogo(document.getElementById('admLogo'), res.publicConfig.URL_LOGO);
+
+        const isAdmin = res.session.role === 'ADMIN';
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = isAdmin ? 'inline-block' : 'none';
+        });
+
+        renderDashboard();
+        if (isAdmin) {
+          renderConfigTable();
+          renderFormBuilder();
+          renderAccounts();
+        }
+        renderLogs();
+      } catch (err) {
+        setLoading(false);
+        showToast(err.message, 'error');
+      }
+    }
+
+    document.getElementById('admLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setLoading(true, 'Đang đăng nhập...');
+      try {
+        const res = await callBackend('login', {
+          username: document.getElementById('aUser').value.trim(),
+          password: document.getElementById('aPass').value.trim()
+        });
+        setLoading(false);
+        if (!res.success) return showToast(res.message, 'error');
+        localStorage.setItem('ns_staff_token', res.token);
+        loadAdmin();
+      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+    });
+
+    document.getElementById('btnAdmLogout').onclick = async () => {
+      try { await callBackend('logout'); } catch (e) {}
+      localStorage.removeItem('ns_staff_token');
+      document.getElementById('admLoginBox').style.display = 'block';
+      document.getElementById('admMain').classList.remove('active');
+      document.getElementById('btnAdmLogout').style.display = 'none';
+    };
+
+    if (localStorage.getItem('ns_staff_token')) {
+      loadAdmin();
+    }
+  </script>
+</body>
+</html>

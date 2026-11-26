@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Màn Hình Đối Chiếu Phụ Huynh – Trường Tiểu học Ngôi Sao</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #eef6e8; min-height: 100vh; display: flex; flex-direction: column; }
+    .mhp-wrap { flex: 1; max-width: 1180px; width: 100%; margin: 18px auto; padding: 0 18px; }
+    .standby-card {
+      background: linear-gradient(135deg, #2e6b18 0%, #4e972e 55%, #8bc83a 100%);
+      border-radius: 28px; padding: 48px 40px; color: #fff;
+      display: flex; align-items: center; justify-content: space-between; gap: 32px;
+      box-shadow: 0 18px 45px rgba(46, 107, 24, 0.25);
+      min-height: 74vh;
+    }
+    .standby-card h1 { font-size: 38px; margin: 0 0 14px; font-weight: 800; line-height: 1.2; }
+    .standby-card p { font-size: 19px; opacity: 0.95; max-width: 600px; line-height: 1.6; }
+    .standby-art {
+      width: 240px; height: 240px; border-radius: 40px; overflow: hidden;
+      background: #f4fbea; border: 6px solid rgba(255,255,255,0.88);
+      transform: rotate(4deg); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.2);
+    }
+    .standby-art img { width: 100%; height: 100%; object-fit: cover; }
+
+    .review-box { display: none; }
+    .review-header {
+      background: linear-gradient(135deg, #2e6b18, #4e972e);
+      color: #fff; border-radius: 20px; padding: 18px 24px;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      margin-bottom: 16px;
+    }
+    .review-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px;
+    }
+    .rv-item {
+      background: #fff; border: 1.5px solid var(--brand-border); border-radius: 14px;
+      padding: 12px 16px;
+    }
+    .rv-item.span-2 { grid-column: 1 / -1; }
+    .rv-label { font-size: 13px; color: var(--ink-muted); font-weight: 600; margin-bottom: 3px; }
+    .rv-value { font-size: 20px; font-weight: 800; color: var(--ink); word-break: break-word; }
+    .rv-value.empty { color: #cbd5e1; font-weight: 500; font-style: italic; font-size: 16px; }
+
+    .approved-card {
+      display: none; text-align: center; background: #fff; border-radius: 28px;
+      padding: 56px 30px; border: 3px solid #22c55e; box-shadow: var(--shadow-md);
+    }
+    .approved-card h1 { font-size: 34px; color: #15803d; margin: 12px 0; }
+    .approved-card p { font-size: 19px; color: var(--ink-muted); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-symbol" id="mhpLogo">⭐</div>
+      <div>
+        <div class="brand-title" id="mhpSchool">TRƯỜNG TIỂU HỌC NGÔI SAO</div>
+        <div class="brand-sub" id="mhpSub">Màn hình đối chiếu thông tin tuyển sinh dành cho Phụ huynh</div>
+      </div>
+    </div>
+    <span class="badge badge-da-duyet" id="syncBadge">🟢 Đã sẵn sàng đồng bộ</span>
+  </header>
+
+  <main class="mhp-wrap">
+    <!-- Màn hình chờ -->
+    <section class="standby-card" id="standbyView">
+      <div>
+        <div style="display:inline-block; background:rgba(255,255,255,0.2); padding:6px 16px; border-radius:999px; font-weight:700; font-size:15px; margin-bottom:14px;" id="standbyYear">NĂM HỌC 2026 - 2027</div>
+        <h1>Chào Mừng Quý Phụ Huynh Đến Với Bàn Tiếp Nhận Hồ Sơ</h1>
+        <p>Quý phụ huynh vui lòng xuất trình <b>Mã QR Hồ Sơ</b> trên điện thoại để cán bộ tuyển sinh mở hồ sơ và cùng kiểm tra đối chiếu thông tin trên màn hình này.</p>
+      </div>
+      <div class="standby-art" id="standbyArt"><span style="font-size:88px;">🏫</span></div>
+    </section>
+
+    <!-- Màn hình hiển thị thông tin đối chiếu -->
+    <section class="review-box" id="reviewView">
+      <div class="review-header">
+        <div>
+          <div style="font-size:14px; opacity:0.9;">QUÝ PHỤ HUYNH VUI LÒNG KIỂM TRA KỸ THÔNG TIN DƯỚI ĐÂY</div>
+          <div style="font-size:26px; font-weight:800; margin-top:4px;" id="rvTitle">Hồ sơ: —</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="rvStatusBadge" class="badge badge-cho-duyet" style="font-size:15px; padding:6px 14px;">Chờ duyệt</div>
+          <div style="font-size:13px; margin-top:6px; opacity:0.9;" id="rvTabName"></div>
+        </div>
+      </div>
+      <div class="review-grid" id="rvGrid"></div>
+    </section>
+
+    <!-- Màn hình Chúc mừng Đã duyệt -->
+    <section class="approved-card" id="approvedView">
+      <div style="font-size:74px;">🏆</div>
+      <h1>Xác Nhận Tiếp Nhận Hồ Sơ Thành Công!</h1>
+      <p id="approvedDesc">Hồ sơ của học sinh đã được đối chiếu chính xác và phê duyệt trên hệ thống.</p>
+      <div style="margin-top:18px; font-size:16px; color:var(--brand-dark); font-weight:700;">Cảm ơn Quý Phụ huynh đã tin tưởng đồng hành cùng Nhà trường!</div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const MHP = { fields: [], tabs: [], channel: null };
+
+    function showOnly(id) {
+      document.getElementById('standbyView').style.display = id === 'standby' ? 'flex' : 'none';
+      document.getElementById('reviewView').style.display = id === 'review' ? 'block' : 'none';
+      document.getElementById('approvedView').style.display = id === 'approved' ? 'block' : 'none';
+    }
+
+    function renderRecord(record, activeTabId) {
+      if (!record) { showOnly('standby'); return; }
+      showOnly('review');
+      document.getElementById('rvTitle').textContent = `${record.Ma_Ticket || ''} — ${record.Ho_Ten_HS || ''}`;
+      const st = record.Trang_Thai || 'Chờ duyệt';
+      const stEl = document.getElementById('rvStatusBadge');
+      stEl.textContent = st;
+      stEl.className = 'badge ' + (st === 'Đã duyệt' ? 'badge-da-duyet' : st === 'Chờ bổ sung' ? 'badge-cho-bo-sung' : st === 'Đã loại' ? 'badge-da-loai' : 'badge-cho-duyet');
+
+      const tabObj = MHP.tabs.find(t => t.ID_Tab === activeTabId);
+      document.getElementById('rvTabName').textContent = tabObj ? ('Đang xem: ' + tabObj.Ten_Tab) : 'Toàn bộ thông tin chính';
+
+      const grid = document.getElementById('rvGrid');
+      grid.innerHTML = '';
+
+      const fieldsToShow = activeTabId
+        ? MHP.fields.filter(f => f.ID_Tab === activeTabId && f.Hien_Thi === 'YES')
+        : MHP.fields.filter(f => f.Hien_Thi === 'YES').slice(0, 14);
+
+      fieldsToShow.forEach(f => {
+        const val = String(record[f.ID_Truong] || '').trim();
+        const div = document.createElement('div');
+        div.className = 'rv-item' + (String(f.Do_Rong) === '1' ? ' span-2' : '');
+        div.innerHTML = `
+          <div class="rv-label">${escapeHtml(f.Ten_Hien_Thi)}</div>
+          <div class="rv-value ${val ? '' : 'empty'}">${val ? escapeHtml(val) : '(Chưa điền)'}</div>`;
+        grid.appendChild(div);
+      });
+    }
+
+    function setupChannel() {
+      MHP.channel = new BroadcastChannel(window.APP_CONFIG.SYNC_CHANNEL_NAME);
+      MHP.channel.onmessage = (ev) => {
+        const msg = ev.data || {};
+        if (msg.type === 'SYNC_RECORD') {
+          if (msg.fields && msg.fields.length) MHP.fields = msg.fields;
+          if (msg.tabs && msg.tabs.length) MHP.tabs = msg.tabs;
+          renderRecord(msg.record, msg.activeTabId);
+        } else if (msg.type === 'APPROVED') {
+          showOnly('approved');
+          document.getElementById('approvedDesc').innerHTML =
+            `Hồ sơ <b>${escapeHtml(msg.ticket)}</b> của học sinh <b>${escapeHtml(msg.hoTen)}</b> đã được phê duyệt hoàn tất!`;
+        } else if (msg.type === 'STANDBY') {
+          showOnly('standby');
+        } else if (msg.type === 'PING_VIEWER') {
+          MHP.channel.postMessage({ type: 'VIEWER_READY' });
+        }
+      };
+      // Auto-Handshake ngay khi tải xong (kể cả khi nhấn F5)
+      MHP.channel.postMessage({ type: 'VIEWER_READY' });
+    }
+
+    (async function init() {
+      try {
+        const res = await callBackend('getPublicData');
+        if (res.success) {
+          const c = res.config || {};
+          MHP.fields = res.fields || [];
+          MHP.tabs = res.tabs || [];
+          document.getElementById('mhpSchool').textContent = c.TEN_TRUONG || 'TRƯỜNG TIỂU HỌC NGÔI SAO';
+          document.getElementById('standbyYear').textContent = 'NĂM HỌC ' + (c.NAM_HOC || '2026 - 2027');
+          renderBrandLogo(document.getElementById('mhpLogo'), c.URL_LOGO);
+          if (c.URL_ANH_TUYENSINH && /^https?:\/\//i.test(c.URL_ANH_TUYENSINH)) {
+            const art = document.getElementById('standbyArt');
+            art.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = c.URL_ANH_TUYENSINH;
+            img.alt = 'Ảnh tuyển sinh';
+            art.appendChild(img);
+          }
+        }
+      } catch (e) {}
+      setupChannel();
+    })();
+  </script>
+</body>
+</html>

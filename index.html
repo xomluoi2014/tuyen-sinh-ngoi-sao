@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cổng Tuyển Sinh Trực Tuyến – Trường Tiểu học Ngôi Sao</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .hub-wrap { max-width: 980px; margin: 28px auto; padding: 0 16px; }
+    .hero-banner {
+      background: linear-gradient(135deg, #2e6b18 0%, #4e972e 58%, #8bc83a 100%);
+      border-radius: 24px; padding: 28px 32px; color: #fff;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      box-shadow: 0 14px 36px rgba(46, 107, 24, 0.24);
+      margin-bottom: 24px;
+    }
+    .hero-badge {
+      display: inline-block; background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3); padding: 4px 12px;
+      border-radius: 999px; font-size: 12px; font-weight: 700; margin-bottom: 10px;
+    }
+    .hero-banner h1 { margin: 0 0 8px; font-size: 26px; font-weight: 800; line-height: 1.25; }
+    .hero-banner p { margin: 0; opacity: 0.94; font-size: 14.5px; max-width: 560px; }
+    .hero-art {
+      width: 150px; height: 150px; border-radius: 32px; overflow: hidden;
+      background: #f4fbea; border: 4px solid rgba(255,255,255,0.85);
+      transform: rotate(4deg); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.18);
+    }
+    .hero-art img { width: 100%; height: 100%; object-fit: cover; }
+    .portal-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;
+    }
+    .portal-card {
+      background: #fff; border: 1.5px solid var(--brand-border); border-radius: 20px;
+      padding: 22px; display: flex; flex-direction: column; justify-content: space-between;
+      gap: 14px; transition: all 0.2s ease; box-shadow: var(--shadow-sm);
+    }
+    .portal-card:hover {
+      transform: translateY(-3px); border-color: var(--brand-primary);
+      box-shadow: var(--shadow-md);
+    }
+    .portal-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; background: var(--brand-soft);
+    }
+    .portal-card h3 { margin: 0 0 6px; font-size: 17px; color: var(--ink); }
+    .portal-card p { margin: 0; font-size: 13.5px; color: var(--ink-muted); }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+      background: #dcfce7; color: #15803d;
+    }
+    .status-pill.closed { background: #fee2e2; color: #b91c1c; }
+    @media (max-width: 720px) {
+      .hero-banner { flex-direction: column; text-align: center; padding: 22px 18px; }
+      .hero-art { width: 120px; height: 120px; }
+      .portal-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-symbol" id="hubLogo">⭐</div>
+      <div>
+        <div class="brand-title" id="hubSchoolName">TRƯỜNG TIỂU HỌC NGÔI SAO</div>
+        <div class="brand-sub" id="hubYear">Hệ thống Tuyển sinh Trực tuyến</div>
+      </div>
+    </div>
+    <div class="status-pill" id="hubStatus">● Đang kết nối...</div>
+  </header>
+
+  <main class="hub-wrap">
+    <section class="hero-banner">
+      <div>
+        <div class="hero-badge" id="heroYearBadge">NĂM HỌC 2026 - 2027</div>
+        <h1 id="heroTitle">Cổng Tuyển Sinh Trực Tuyến</h1>
+        <p>Hệ thống tiếp nhận hồ sơ thông minh: Phụ huynh đăng ký trong 2 phút nhận thẻ QR, Nhân viên đối chiếu 2 màn hình không giấy tờ, Ban Giám hiệu theo dõi báo cáo thời gian thực.</p>
+      </div>
+      <div class="hero-art" id="hubBannerArt">
+        <span style="font-size:58px;">🏫</span>
+      </div>
+    </section>
+
+    <section class="portal-grid">
+      <div class="portal-card">
+        <div>
+          <div class="portal-icon">👨‍👩‍👧‍👦</div>
+          <h3 style="margin-top:12px;">1. Cổng Phụ Huynh Đăng Ký</h3>
+          <p>Dành cho phụ huynh nộp hồ sơ trực tuyến, nhận Thẻ Hồ Sơ QR, tra cứu trạng thái và bổ sung hồ sơ mọi lúc mọi nơi.</p>
+        </div>
+        <a href="phuhuynh.html" class="btn btn-primary">Mở Cổng Phụ Huynh →</a>
+      </div>
+
+      <div class="portal-card">
+        <div>
+          <div class="portal-icon">🖥️</div>
+          <h3 style="margin-top:12px;">2. Cổng Nhân Viên Tiếp Nhận</h3>
+          <p>Quét mã QR bằng Camera, kiểm tra hồ sơ giấy tại quầy, đồng bộ màn hình phụ, in phiếu PDF và xuất Excel tức thì.</p>
+        </div>
+        <a href="nhanvien.html" class="btn btn-outline">Mở Cổng Nhân Viên →</a>
+      </div>
+
+      <div class="portal-card">
+        <div>
+          <div class="portal-icon">📺</div>
+          <h3 style="margin-top:12px;">3. Màn Hình Phụ (Quay ra Phụ huynh)</h3>
+          <p>Hiển thị trực tiếp thông tin hồ sơ phóng to để phụ huynh cùng kiểm tra đối chiếu với nhân viên tại bàn tuyển sinh.</p>
+        </div>
+        <a href="manhinhphu.html" class="btn btn-outline">Mở Màn Hình Phụ →</a>
+      </div>
+
+      <div class="portal-card">
+        <div>
+          <div class="portal-icon">⚙️</div>
+          <h3 style="margin-top:12px;">4. Cổng Quản Trị & Báo Cáo CĐT</h3>
+          <p>Thống kê biểu đồ thời gian thực cho Chủ đầu tư, bật/tắt cổng tuyển sinh, tùy biến Form Builder và quản lý tài khoản.</p>
+        </div>
+        <a href="admin.html" class="btn btn-gold">Mở Cổng Quản Trị →</a>
+      </div>
+    </section>
+
+    <p style="text-align:center; color:var(--ink-muted); font-size:12.5px; margin-top:26px;" id="hubHotline">
+      Hotline hỗ trợ tuyển sinh: Đang tải...
+    </p>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    (async function initHub() {
+      const stEl = document.getElementById('hubStatus');
+      try {
+        const res = await callBackend('getPublicData');
+        if (!res.success) throw new Error(res.message);
+        const c = res.config || {};
+        document.getElementById('hubSchoolName').textContent = c.TEN_TRUONG || 'TRƯỜNG TIỂU HỌC NGÔI SAO';
+        document.getElementById('hubYear').textContent = 'Tuyển sinh năm học ' + (c.NAM_HOC || '2026 - 2027');
+        document.getElementById('heroYearBadge').textContent = 'NĂM HỌC ' + (c.NAM_HOC || '2026 - 2027');
+        document.getElementById('hubHotline').textContent = 'Hotline hỗ trợ tuyển sinh: ' + (c.HOTLINE || 'Liên hệ văn phòng nhà trường');
+        renderBrandLogo(document.getElementById('hubLogo'), c.URL_LOGO);
+
+        if (c.URL_ANH_TUYENSINH && /^https?:\/\//i.test(c.URL_ANH_TUYENSINH)) {
+          const art = document.getElementById('hubBannerArt');
+          art.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = c.URL_ANH_TUYENSINH;
+          img.alt = 'Ảnh tuyển sinh';
+          art.appendChild(img);
+        }
+
+        const isOpen = String(c.TRANG_THAI || 'MỞ').toUpperCase() === 'MỞ';
+        stEl.textContent = isOpen ? '● Cổng đang MỞ' : '● Cổng tạm ĐÓNG';
+        stEl.className = 'status-pill' + (isOpen ? '' : ' closed');
+      } catch (err) {
+        stEl.textContent = '⚠ Chưa cấu hình API';
+        stEl.className = 'status-pill closed';
+        showToast(err.message, 'error', 6000);
+      }
+    })();
+  </script>
+</body>
+</html>

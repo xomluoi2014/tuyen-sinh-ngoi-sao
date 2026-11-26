@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cổng Nhân Viên Tiếp Nhận – Trường Tiểu học Ngôi Sao</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .login-screen {
+      flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-card { width: 100%; max-width: 400px; }
+
+    .nv-main {
+      flex: 1; display: none; grid-template-columns: 380px 1fr;
+      overflow: hidden; min-height: 0;
+    }
+    .nv-main.active { display: grid; }
+
+    /* Left list panel */
+    .left-pane {
+      background: #fff; border-right: 1px solid var(--brand-border);
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .filter-box { padding: 12px; border-bottom: 1px solid #e6f0e0; display: flex; flex-direction: column; gap: 8px; }
+    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+    .st-mini {
+      padding: 6px 4px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0;
+      cursor: pointer; transition: 0.15s;
+    }
+    .st-mini.active { border-color: var(--brand-primary); background: var(--brand-soft); }
+    .st-mini b { display: block; font-size: 16px; line-height: 1.1; }
+    .st-mini span { font-size: 10.5px; color: var(--ink-muted); font-weight: 600; }
+
+    .record-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 7px; }
+    .rec-item {
+      padding: 10px 12px; border-radius: 12px; border: 1.5px solid #e5efe0;
+      background: #fff; cursor: pointer; transition: 0.15s;
+    }
+    .rec-item:hover { border-color: var(--brand-light); background: #fafdf7; }
+    .rec-item.selected { border-color: var(--brand-primary); background: var(--brand-soft); box-shadow: 0 3px 10px rgba(78,151,46,0.14); }
+    .rec-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .rec-ticket { font-weight: 800; color: var(--brand-dark); font-size: 13.5px; }
+    .rec-name { font-weight: 700; font-size: 14px; color: var(--ink); }
+    .rec-meta { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+
+    /* Right detail panel */
+    .right-pane {
+      display: flex; flex-direction: column; min-height: 0; background: var(--bg);
+    }
+    .detail-empty {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--ink-muted); text-align: center; padding: 24px;
+    }
+    .detail-wrap { flex: 1; display: none; flex-direction: column; min-height: 0; }
+    .detail-wrap.open { display: flex; }
+
+    .detail-header {
+      background: #fff; padding: 12px 18px; border-bottom: 1px solid var(--brand-border);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .detail-tabs {
+      display: flex; gap: 6px; padding: 8px 18px 0; background: #fff;
+      border-bottom: 1px solid var(--brand-border); overflow-x: auto;
+    }
+    .dtab {
+      padding: 8px 14px; border: none; background: transparent; cursor: pointer;
+      font-family: inherit; font-weight: 700; font-size: 13px; color: var(--ink-muted);
+      border-bottom: 3px solid transparent; white-space: nowrap;
+    }
+    .dtab.active { color: var(--brand-dark); border-bottom-color: var(--brand-primary); }
+    .detail-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
+    .detail-footer {
+      background: #fff; border-top: 1px solid var(--brand-border);
+      padding: 10px 18px; display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; flex-wrap: wrap;
+    }
+
+    /* QR Scanner Video */
+    .qr-video-box {
+      position: relative; width: 100%; border-radius: 16px; overflow: hidden;
+      background: #0f172a; aspect-ratio: 4/3;
+    }
+    .qr-video-box video { width: 100%; height: 100%; object-fit: cover; }
+    .qr-frame {
+      position: absolute; inset: 18%; border: 3px solid #4ade80; border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.38); pointer-events: none;
+    }
+
+    @media (max-width: 900px) {
+      body { height: auto; overflow: auto; }
+      .nv-main.active { grid-template-columns: 1fr; }
+      .left-pane { max-height: 46vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader-overlay" id="loader">
+    <div class="spinner"></div>
+    <div id="loaderText" style="font-weight:700; color:var(--brand-dark);">Đang tải dữ liệu...</div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-symbol" id="nvLogo">⭐</div>
+      <div>
+        <div class="brand-title" id="nvSchoolName">CỔNG NHÂN VIÊN TIẾP NHẬN HỒ SƠ</div>
+        <div class="brand-sub" id="nvUserInfo">Vui lòng đăng nhập để làm việc</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;" id="nvToolbar" style="display:none;">
+      <button class="btn btn-primary btn-sm" id="btnScanQR" style="display:none;">📷 Quét QR</button>
+      <button class="btn btn-outline btn-sm" id="btnOpenViewer" style="display:none;">📺 Màn hình phụ</button>
+      <span id="viewerStatusPill" class="badge badge-cho-duyet" style="display:none;">⚪ Chưa nối MH phụ</span>
+      <button class="btn btn-outline btn-sm" id="btnExportExcel" style="display:none;">📊 Xuất Excel</button>
+      <button class="btn btn-outline btn-sm" id="btnRefresh" style="display:none;">🔄 Làm mới</button>
+      <a href="admin.html" class="btn btn-gold btn-sm" id="btnGoAdmin" style="display:none;">⚙️ Quản trị</a>
+      <button class="btn btn-outline btn-sm" id="btnLogout" style="display:none;">Đăng xuất</button>
+      <a href="index.html" class="btn btn-outline btn-sm">🏠</a>
+    </div>
+  </header>
+
+  <!-- Màn hình đăng nhập -->
+  <section class="login-screen" id="loginScreen">
+    <div class="card login-card">
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="font-size:40px;">🔐</div>
+        <h2 style="margin:6px 0 4px; color:var(--brand-dark);">Đăng Nhập Cán Bộ Tuyển Sinh</h2>
+        <p style="margin:0; font-size:13px; color:var(--ink-muted);">Dành cho Nhân viên tiếp nhận, Admin và Chủ đầu tư</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Tên tài khoản</label>
+          <input type="text" id="lgUser" class="form-control" placeholder="VD: tuyensinh hoặc admin" required autocomplete="username">
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Mật khẩu</label>
+          <input type="password" id="lgPass" class="form-control" placeholder="Nhập mật khẩu" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Đăng nhập hệ thống</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Giao diện làm việc chính -->
+  <main class="nv-main" id="nvWorkspace">
+    <!-- Cột trái: Danh sách hồ sơ -->
+    <aside class="left-pane">
+      <div class="filter-box">
+        <div class="stats-strip" id="statsStrip">
+          <div class="st-mini active" data-st="ALL"><b id="cntAll">0</b><span>Tất cả</span></div>
+          <div class="st-mini" data-st="Chờ duyệt"><b id="cntCho" style="color:#0369a1;">0</b><span>Chờ duyệt</span></div>
+          <div class="st-mini" data-st="Chờ bổ sung"><b id="cntBs" style="color:#b45309;">0</b><span>Bổ sung</span></div>
+          <div class="st-mini" data-st="Đã duyệt"><b id="cntOk" style="color:#15803d;">0</b><span>Đã duyệt</span></div>
+        </div>
+        <input type="text" id="searchInput" class="form-control" placeholder="🔍 Tìm mã hồ sơ, họ tên, SĐT, CCCD...">
+        <div style="display:flex; gap:6px;">
+          <select id="gradeFilter" class="form-select" style="padding:7px 10px; font-size:13px;">
+            <option value="">Tất cả khối lớp</option>
+          </select>
+          <select id="statusFilter" class="form-select" style="padding:7px 10px; font-size:13px;">
+            <option value="ALL">Mọi trạng thái</option>
+            <option value="Chờ duyệt">Chờ duyệt</option>
+            <option value="Chờ bổ sung">Chờ bổ sung</option>
+            <option value="Đã duyệt">Đã duyệt</option>
+            <option value="Đã loại">Đã loại</option>
+          </select>
+        </div>
+      </div>
+      <div class="record-list" id="recordList"></div>
+    </aside>
+
+    <!-- Cột phải: Chi tiết hồ sơ -->
+    <section class="right-pane">
+      <div class="detail-empty" id="detailEmpty">
+        <div style="font-size:54px; margin-bottom:10px;">📋</div>
+        <h3 style="margin:0 0 6px; color:var(--ink);">Chọn một hồ sơ bên trái hoặc bấm "📷 Quét QR"</h3>
+        <p style="margin:0; max-width:420px; font-size:13.5px;">Mọi thao tác tìm kiếm và quét mã QR diễn ra tức thì (0.001 giây) trên bộ nhớ trình duyệt.</p>
+      </div>
+
+      <div class="detail-wrap" id="detailWrap">
+        <div class="detail-header">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <strong style="font-size:17px; color:var(--brand-dark);" id="dtTicket">NS26-0000</strong>
+              <span id="dtStatusBadge" class="badge badge-cho-duyet">Chờ duyệt</span>
+              <span id="dtDupBadge" class="badge badge-dup" style="display:none;">⚠️ Có hồ sơ trùng</span>
+            </div>
+            <div style="font-size:13px; color:var(--ink-muted); margin-top:2px;" id="dtMeta"></div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" id="btnToggleSync">▶ Đồng bộ MH phụ</button>
+            <button class="btn btn-outline btn-sm" id="btnPrintPdf">🖨️ In Phiếu PDF</button>
+            <button class="btn btn-outline btn-sm" id="btnCloseDetail">✖ Đóng</button>
+          </div>
+        </div>
+
+        <div class="detail-tabs" id="detailTabs"></div>
+        <div class="detail-body">
+          <div id="detailFormGrid" class="form-grid"></div>
+        </div>
+
+        <div class="detail-footer" id="detailFooter">
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn btn-warning btn-sm" id="btnRequireRevision">↩️ Yêu cầu bổ sung</button>
+            <button class="btn btn-danger btn-sm" id="btnReject">⛔ Loại hồ sơ</button>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-outline" id="btnSaveOnly">💾 Lưu thay đổi</button>
+            <button class="btn btn-primary" id="btnApprove">✅ Lưu & Phê duyệt</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Quét QR bằng Camera trực tiếp (Không bị Sandbox Google chặn!) -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal-box" style="max-width:460px;">
+      <button class="modal-close" onclick="stopQrScanner()">×</button>
+      <h2 style="margin:0 0 8px; color:var(--brand-dark);">📷 Quét Mã QR Hồ Sơ</h2>
+      <p style="margin:0 0 10px; font-size:13px; color:var(--ink-muted);">Đưa mã QR trên điện thoại phụ huynh vào khung xanh bên dưới.</p>
+      <div class="qr-video-box">
+        <video id="qrVideo" playsinline muted></video>
+        <div class="qr-frame"></div>
+      </div>
+      <canvas id="qrCanvas" style="display:none;"></canvas>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <input type="text" id="qrManualInput" class="form-control" placeholder="Hoặc gõ / bắn máy quét mã NS26-...">
+        <button class="btn btn-primary" onclick="openTicketFromScanner()">Mở</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const NV = {
+      session: null,
+      config: {},
+      tabs: [],
+      fields: [],
+      danhMuc: {},
+      headers: [],
+      listData: [],
+      duplicateMap: {},
+      currentDraft: null, // Clone độc lập (Fix lỗi dính tham chiếu khi không bấm Lưu!)
+      activeTabId: '',
+      statusFilter: 'ALL',
+      syncEnabled: false,
+      viewerConnected: false,
+      channel: null,
+      qrStream: null,
+      qrRaf: null
+    };
+
+    function setLoading(show, text = 'Đang xử lý...') {
+      document.getElementById('loaderText').textContent = text;
+      document.getElementById('loader').classList.toggle('open', show);
+    }
+
+    function statusBadgeClass(st) {
+      if (st === 'Đã duyệt') return 'badge-da-duyet';
+      if (st === 'Chờ bổ sung') return 'badge-cho-bo-sung';
+      if (st === 'Đã loại') return 'badge-da-loai';
+      return 'badge-cho-duyet';
+    }
+
+    function setupSyncChannel() {
+      if (NV.channel) return;
+      NV.channel = new BroadcastChannel(window.APP_CONFIG.SYNC_CHANNEL_NAME);
+      NV.channel.onmessage = (ev) => {
+        const msg = ev.data || {};
+        if (msg.type === 'VIEWER_READY') {
+          NV.viewerConnected = true;
+          const pill = document.getElementById('viewerStatusPill');
+          pill.textContent = '🟢 Đã nối MH phụ';
+          pill.className = 'badge badge-da-duyet';
+          if (NV.syncEnabled && NV.currentDraft) pushToViewer();
+        }
+      };
+      NV.channel.postMessage({ type: 'PING_VIEWER' });
+    }
+
+    function pushToViewer() {
+      if (!NV.channel || !NV.syncEnabled) return;
+      NV.channel.postMessage({
+        type: 'SYNC_RECORD',
+        record: NV.currentDraft,
+        activeTabId: NV.activeTabId,
+        fields: NV.fields,
+        tabs: NV.tabs
+      });
+    }
+
+    function updateStatsAndFilters() {
+      let cho = 0, bs = 0, ok = 0;
+      const grades = new Set();
+      NV.listData.forEach(r => {
+        if (r.Trang_Thai === 'Chờ duyệt') cho++;
+        else if (r.Trang_Thai === 'Chờ bổ sung') bs++;
+        else if (r.Trang_Thai === 'Đã duyệt') ok++;
+        if (r.Khoi_Lop) grades.add(r.Khoi_Lop);
+      });
+      document.getElementById('cntAll').textContent = NV.listData.length;
+      document.getElementById('cntCho').textContent = cho;
+      document.getElementById('cntBs').textContent = bs;
+      document.getElementById('cntOk').textContent = ok;
+
+      const gf = document.getElementById('gradeFilter');
+      const curG = gf.value;
+      gf.innerHTML = '<option value="">Tất cả khối lớp</option>';
+      Array.from(grades).sort().forEach(g => {
+        const o = document.createElement('option');
+        o.value = g; o.textContent = g;
+        if (g === curG) o.selected = true;
+        gf.appendChild(o);
+      });
+    }
+
+    function renderRecordList() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const grade = document.getElementById('gradeFilter').value;
+      const st = NV.statusFilter;
+
+      const filtered = NV.listData.filter(r => {
+        if (st !== 'ALL' && r.Trang_Thai !== st) return false;
+        if (grade && r.Khoi_Lop !== grade) return false;
+        if (q) {
+          const hay = [r.Ma_Ticket, r.Ho_Ten_HS, r.Ngay_Sinh, r.Can_Cuoc, r.SDT_Cha, r.SDT_Me, r.SDT_Lien_He, r.Ten_Cha, r.Ten_Me]
+            .join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const listEl = document.getElementById('recordList');
+      listEl.innerHTML = '';
+      if (!filtered.length) {
+        listEl.innerHTML = '<div style="text-align:center; padding:24px; color:var(--ink-muted);">Không có hồ sơ phù hợp.</div>';
+        return;
+      }
+
+      filtered.forEach(r => {
+        const isSel = NV.currentDraft && NV.currentDraft.Ma_Ticket === r.Ma_Ticket;
+        const isDup = !!NV.duplicateMap[r.Ma_Ticket];
+        const div = document.createElement('div');
+        div.className = 'rec-item' + (isSel ? ' selected' : '');
+        div.innerHTML = `
+          <div class="rec-top">
+            <span class="rec-ticket">${escapeHtml(r.Ma_Ticket)} ${isDup ? '<span title="Trùng tên & ngày sinh">⚠️</span>' : ''}</span>
+            <span class="badge ${statusBadgeClass(r.Trang_Thai)}">${escapeHtml(r.Trang_Thai)}</span>
+          </div>
+          <div class="rec-name">${escapeHtml(r.Ho_Ten_HS || '(Chưa có tên)')}</div>
+          <div class="rec-meta">${escapeHtml(r.Ngay_Sinh || '—')} • ${escapeHtml(r.Khoi_Lop || '—')} • ${escapeHtml(r.SDT_Cha || r.SDT_Me || r.SDT_Lien_He || '')}</div>`;
+        div.onclick = () => viewDetail(r.Ma_Ticket);
+        listEl.appendChild(div);
+      });
+    }
+
+    function viewDetail(ticket) {
+      const orig = NV.listData.find(r => r.Ma_Ticket === ticket);
+      if (!orig) {
+        showToast('Không tìm thấy hồ sơ mã ' + ticket, 'error');
+        return;
+      }
+      // Clone độc lập hoàn toàn (Fix bug dính bộ nhớ tạm nếu nhân viên sửa thử rồi đóng)
+      NV.currentDraft = JSON.parse(JSON.stringify(orig));
+      NV.activeTabId = NV.tabs.length ? NV.tabs[0].ID_Tab : '';
+
+      document.getElementById('detailEmpty').style.display = 'none';
+      document.getElementById('detailWrap').classList.add('open');
+
+      document.getElementById('dtTicket').textContent = NV.currentDraft.Ma_Ticket + ' — ' + (NV.currentDraft.Ho_Ten_HS || '');
+      const sb = document.getElementById('dtStatusBadge');
+      sb.textContent = NV.currentDraft.Trang_Thai;
+      sb.className = 'badge ' + statusBadgeClass(NV.currentDraft.Trang_Thai);
+
+      const dupList = NV.duplicateMap[ticket];
+      const dupEl = document.getElementById('dtDupBadge');
+      if (dupList && dupList.length > 1) {
+        dupEl.style.display = 'inline-flex';
+        dupEl.textContent = '⚠️ Trùng với: ' + dupList.filter(x => x !== ticket).join(', ');
+      } else {
+        dupEl.style.display = 'none';
+      }
+
+      document.getElementById('dtMeta').textContent = `Nộp lúc: ${NV.currentDraft.Thoi_Gian || '—'} | Khối: ${NV.currentDraft.Khoi_Lop || '—'}`;
+
+      // Chặn quyền sửa nếu là Chủ đầu tư
+      const readOnly = NV.session && NV.session.role === 'CHU_DAU_TU';
+      document.getElementById('detailFooter').style.display = readOnly ? 'none' : 'flex';
+      document.getElementById('btnPrintPdf').style.display = readOnly ? 'none' : 'inline-flex';
+
+      renderDetailTabs();
+      renderDetailFields();
+      renderRecordList();
+      if (NV.syncEnabled) pushToViewer();
+    }
+
+    function renderDetailTabs() {
+      const box = document.getElementById('detailTabs');
+      box.innerHTML = '';
+      NV.tabs.forEach(t => {
+        const b = document.createElement('button');
+        b.className = 'dtab' + (t.ID_Tab === NV.activeTabId ? ' active' : '');
+        b.textContent = t.Ten_Tab;
+        b.onclick = () => {
+          NV.activeTabId = t.ID_Tab;
+          renderDetailTabs();
+          renderDetailFields();
+          if (NV.syncEnabled) pushToViewer();
+        };
+        box.appendChild(b);
+      });
+    }
+
+    function populateStaffXa(xaEl, tenTinh, currentXa) {
+      const allXa = NV.danhMuc.DM_Xa || [];
+      const tNorm = String(tenTinh || '').trim().toLowerCase();
+      const tinhObj = (NV.danhMuc.DM_Tinh || []).find(t => t.Ten.trim().toLowerCase() === tNorm);
+      const filtered = tinhObj ? allXa.filter(x => x.Ma_Tinh === tinhObj.Ma) : allXa.slice(0, 0);
+
+      xaEl.innerHTML = '<option value="">-- Chọn Xã / Phường --</option>';
+      const xNorm = String(currentXa || '').trim().toLowerCase();
+      let matched = false;
+      filtered.forEach(x => {
+        const o = document.createElement('option');
+        o.value = x.Ten.trim(); o.textContent = x.Ten.trim();
+        if (xNorm && x.Ten.trim().toLowerCase() === xNorm) { o.selected = true; matched = true; }
+        xaEl.appendChild(o);
+      });
+      if (currentXa && !matched) {
+        const o = document.createElement('option');
+        o.value = currentXa; o.textContent = currentXa; o.selected = true;
+        xaEl.appendChild(o);
+      }
+    }
+
+    function renderDetailFields() {
+      const grid = document.getElementById('detailFormGrid');
+      grid.innerHTML = '';
+      const readOnly = NV.session && NV.session.role === 'CHU_DAU_TU';
+      const tabFields = NV.fields.filter(f => f.ID_Tab === NV.activeTabId);
+
+      tabFields.forEach(f => {
+        const grp = document.createElement('div');
+        grp.className = 'form-group' + (String(f.Do_Rong) === '1' ? ' span-2' : '');
+        const val = NV.currentDraft[f.ID_Truong] || '';
+        const typeLower = f.Loai_O_Nhap.toLowerCase();
+
+        if (typeLower === 'checkbox') {
+          const checked = val && val !== 'Không' && val !== 'FALSE' && val !== 'false';
+          grp.innerHTML = `
+            <label class="checkbox-box">
+              <input type="checkbox" ${checked ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+              <span style="font-weight:600;">${escapeHtml(f.Ten_Hien_Thi)}</span>
+            </label>`;
+          const cb = grp.querySelector('input');
+          cb.addEventListener('change', () => {
+            NV.currentDraft[f.ID_Truong] = cb.checked ? 'Đã nộp / Đã xác nhận' : '';
+            if (NV.syncEnabled) pushToViewer();
+          });
+        } else {
+          const lbl = document.createElement('label');
+          lbl.className = 'form-label';
+          lbl.textContent = f.Ten_Hien_Thi;
+          grp.appendChild(lbl);
+
+          let el;
+          const isTinh = f.ID_Truong.endsWith('_Tinh') || f.Nguon_Du_Lieu === 'DM_Tinh';
+          const isXa = f.ID_Truong.endsWith('_Xa') || f.Nguon_Du_Lieu === 'DM_Xa';
+
+          if (isTinh) {
+            el = document.createElement('select');
+            el.className = 'form-select';
+            el.innerHTML = '<option value="">-- Chọn Tỉnh / TP --</option>';
+            (NV.danhMuc.DM_Tinh || []).forEach(t => {
+              const o = document.createElement('option');
+              o.value = t.Ten; o.textContent = t.Ten;
+              if (t.Ten.trim().toLowerCase() === val.trim().toLowerCase()) o.selected = true;
+              el.appendChild(o);
+            });
+            el.addEventListener('change', () => {
+              NV.currentDraft[f.ID_Truong] = el.value;
+              const xaFieldId = f.ID_Truong.replace(/_Tinh$/, '_Xa');
+              NV.currentDraft[xaFieldId] = '';
+              const xaEl = document.getElementById('nv_f_' + xaFieldId);
+              if (xaEl) populateStaffXa(xaEl, el.value, '');
+              if (NV.syncEnabled) pushToViewer();
+            });
+          } else if (isXa) {
+            el = document.createElement('select');
+            el.className = 'form-select';
+            const tinhVal = NV.currentDraft[f.ID_Truong.replace(/_Xa$/, '_Tinh')] || '';
+            populateStaffXa(el, tinhVal, val);
+            el.addEventListener('change', () => {
+              NV.currentDraft[f.ID_Truong] = el.value;
+              if (NV.syncEnabled) pushToViewer();
+            });
+          } else if (typeLower.indexOf('select') !== -1 || f.Nguon_Du_Lieu) {
+            el = document.createElement('select');
+            el.className = 'form-select';
+            el.innerHTML = '<option value="">-- Chọn --</option>';
+            const list = NV.danhMuc[f.Nguon_Du_Lieu] || [];
+            let hasVal = false;
+            list.forEach(item => {
+              const v = typeof item === 'object' ? item.Ten : item;
+              const o = document.createElement('option');
+              o.value = v; o.textContent = v;
+              if (v.trim().toLowerCase() === val.trim().toLowerCase()) { o.selected = true; hasVal = true; }
+              el.appendChild(o);
+            });
+            if (val && !hasVal) {
+              const o = document.createElement('option');
+              o.value = val; o.textContent = val; o.selected = true;
+              el.appendChild(o);
+            }
+            el.addEventListener('change', () => {
+              NV.currentDraft[f.ID_Truong] = el.value;
+              if (NV.syncEnabled) pushToViewer();
+            });
+          } else if (typeLower === 'textarea') {
+            el = document.createElement('textarea');
+            el.className = 'form-control';
+            el.rows = 3;
+            el.value = val;
+            el.addEventListener('input', () => {
+              NV.currentDraft[f.ID_Truong] = el.value;
+              if (NV.syncEnabled) pushToViewer();
+            });
+          } else {
+            el = document.createElement('input');
+            el.className = 'form-control';
+            el.type = 'text';
+            el.value = val;
+            el.addEventListener('input', () => {
+              if (typeLower === 'date') el.value = formatDateInput(el.value);
+              NV.currentDraft[f.ID_Truong] = el.value;
+              if (NV.syncEnabled) pushToViewer();
+            });
+          }
+
+          el.id = 'nv_f_' + f.ID_Truong;
+          if (readOnly) el.disabled = true;
+          grp.appendChild(el);
+        }
+        grid.appendChild(grp);
+      });
+    }
+
+    async function saveCurrentRecord(newStatus = '', note = '') {
+      if (!NV.currentDraft) return;
+      setLoading(true, newStatus ? ('Đang lưu & chuyển sang "' + newStatus + '"...') : 'Đang lưu thay đổi...');
+      try {
+        const res = await callBackend('updateHoSo', {
+          ticket: NV.currentDraft.Ma_Ticket,
+          newData: NV.currentDraft,
+          newStatus: newStatus,
+          note: note
+        });
+        setLoading(false);
+        if (!res.success) {
+          showToast(res.message || 'Lỗi lưu hồ sơ.', 'error');
+          return;
+        }
+        // Cập nhật ngược lại mảng listData chỉ khi đã Lưu thành công!
+        const idx = NV.listData.findIndex(r => r.Ma_Ticket === NV.currentDraft.Ma_Ticket);
+        if (idx !== -1) NV.listData[idx] = res.record;
+        NV.currentDraft = JSON.parse(JSON.stringify(res.record));
+
+        updateStatsAndFilters();
+        renderRecordList();
+        const sb = document.getElementById('dtStatusBadge');
+        sb.textContent = NV.currentDraft.Trang_Thai;
+        sb.className = 'badge ' + statusBadgeClass(NV.currentDraft.Trang_Thai);
+        showToast(res.message, 'success');
+
+        if (NV.channel && NV.syncEnabled) {
+          if (newStatus === 'Đã duyệt') {
+            NV.channel.postMessage({ type: 'APPROVED', ticket: NV.currentDraft.Ma_Ticket, hoTen: NV.currentDraft.Ho_Ten_HS });
+          } else {
+            pushToViewer();
+          }
+        }
+      } catch (err) {
+        setLoading(false);
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    // In phiếu PDF từ Base64 trả về (0 file rác Drive, không cần quyền Drive)
+    document.getElementById('btnPrintPdf').addEventListener('click', async () => {
+      if (!NV.currentDraft) return;
+      setLoading(true, 'Đang tạo phiếu PDF từ Google Docs...');
+      try {
+        const res = await callBackend('printDoc', { ticket: NV.currentDraft.Ma_Ticket });
+        setLoading(false);
+        if (!res.success) {
+          showToast(res.message || 'Không thể tạo file PDF.', 'error', 5000);
+          return;
+        }
+        const byteChars = atob(res.pdfBase64);
+        const bytes = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        showToast('Đã xuất phiếu PDF thành công!', 'success');
+      } catch (err) {
+        setLoading(false);
+        showToast('Lỗi in phiếu: ' + err.message, 'error');
+      }
+    });
+
+    // Xuất Excel tức thì bằng SheetJS tại trình duyệt
+    document.getElementById('btnExportExcel').addEventListener('click', () => {
+      if (!NV.listData.length) return showToast('Chưa có hồ sơ để xuất.', 'warning');
+      const ws = XLSX.utils.json_to_sheet(NV.listData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Danh_Sach_Tuyen_Sinh');
+      const dStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Danh_Sach_Tuyen_Sinh_${dStr}.xlsx`);
+      showToast('Đã xuất file Excel thành công!', 'success');
+    });
+
+    // Quét QR trực tiếp bằng Camera (chạy mượt 100% trên GitHub Pages HTTPS)
+    async function startQrScanner() {
+      document.getElementById('qrModal').classList.add('open');
+      document.getElementById('qrManualInput').value = '';
+      try {
+        const video = document.getElementById('qrVideo');
+        NV.qrStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        video.srcObject = NV.qrStream;
+        await video.play();
+        const canvas = document.getElementById('qrCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const tick = () => {
+          if (!NV.qrStream) return;
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+            if (code && code.data) {
+              const ticket = code.data.trim();
+              stopQrScanner();
+              viewDetail(ticket);
+              showToast('Đã quét mở hồ sơ ' + ticket, 'success');
+              return;
+            }
+          }
+          NV.qrRaf = requestAnimationFrame(tick);
+        };
+        NV.qrRaf = requestAnimationFrame(tick);
+      } catch (err) {
+        showToast('Không mở được Camera (hãy cấp quyền Camera hoặc gõ mã thủ công bên dưới).', 'warning', 4500);
+      }
+    }
+
+    window.stopQrScanner = function() {
+      if (NV.qrRaf) cancelAnimationFrame(NV.qrRaf);
+      NV.qrRaf = null;
+      if (NV.qrStream) {
+        NV.qrStream.getTracks().forEach(t => t.stop());
+        NV.qrStream = null;
+      }
+      document.getElementById('qrModal').classList.remove('open');
+    };
+
+    window.openTicketFromScanner = function() {
+      const code = document.getElementById('qrManualInput').value.trim().toUpperCase();
+      if (!code) return;
+      stopQrScanner();
+      viewDetail(code);
+    };
+
+    // Các nút hành động
+    document.getElementById('btnScanQR').onclick = startQrScanner;
+    document.getElementById('btnOpenViewer').onclick = () => {
+      window.open('manhinhphu.html', 'NgoiSao_ManHinhPhu', 'width=1200,height=780');
+      NV.syncEnabled = true;
+      document.getElementById('btnToggleSync').textContent = '⏸ Đang đồng bộ MH phụ';
+      document.getElementById('btnToggleSync').className = 'btn btn-primary btn-sm';
+    };
+    document.getElementById('btnToggleSync').onclick = () => {
+      NV.syncEnabled = !NV.syncEnabled;
+      const b = document.getElementById('btnToggleSync');
+      if (NV.syncEnabled) {
+        b.textContent = '⏸ Đang đồng bộ MH phụ';
+        b.className = 'btn btn-primary btn-sm';
+        pushToViewer();
+      } else {
+        b.textContent = '▶ Đồng bộ MH phụ';
+        b.className = 'btn btn-outline btn-sm';
+        if (NV.channel) NV.channel.postMessage({ type: 'STANDBY' });
+      }
+    };
+    document.getElementById('btnCloseDetail').onclick = () => {
+      NV.currentDraft = null;
+      document.getElementById('detailWrap').classList.remove('open');
+      document.getElementById('detailEmpty').style.display = 'flex';
+      renderRecordList();
+      if (NV.channel && NV.syncEnabled) NV.channel.postMessage({ type: 'STANDBY' });
+    };
+    document.getElementById('btnSaveOnly').onclick = () => saveCurrentRecord('', 'Lưu cập nhật tại quầy');
+    document.getElementById('btnApprove').onclick = () => {
+      if (confirm('Xác nhận Phê duyệt hồ sơ ' + NV.currentDraft.Ma_Ticket + '?')) {
+        saveCurrentRecord('Đã duyệt', 'Đã đối chiếu & phê duyệt tại quầy');
+      }
+    };
+    document.getElementById('btnRequireRevision').onclick = () => {
+      const note = prompt('Nhập nội dung cần phụ huynh bổ sung (sẽ hiển thị trên điện thoại phụ huynh):', 'Vui lòng bổ sung lại số CCCD và thông tin hộ khẩu.');
+      if (note !== null) saveCurrentRecord('Chờ bổ sung', note);
+    };
+    document.getElementById('btnReject').onclick = () => {
+      const note = prompt('Nhập lý do loại hồ sơ (VD: Nộp trùng / Không đủ điều kiện):', 'Hồ sơ nộp trùng');
+      if (note !== null) saveCurrentRecord('Đã loại', note);
+    };
+
+    // Lọc & tìm kiếm tức thì
+    document.getElementById('searchInput').addEventListener('input', renderRecordList);
+    document.getElementById('gradeFilter').addEventListener('change', renderRecordList);
+    document.getElementById('statusFilter').addEventListener('change', (e) => {
+      NV.statusFilter = e.target.value;
+      document.querySelectorAll('.st-mini').forEach(x => x.classList.toggle('active', x.dataset.st === NV.statusFilter));
+      renderRecordList();
+    });
+    document.querySelectorAll('.st-mini').forEach(el => {
+      el.onclick = () => {
+        NV.statusFilter = el.dataset.st;
+        document.getElementById('statusFilter').value = NV.statusFilter;
+        document.querySelectorAll('.st-mini').forEach(x => x.classList.toggle('active', x === el));
+        renderRecordList();
+      };
+    });
+
+    async function loadStaffWorkspace() {
+      setLoading(true, 'Đang tải danh sách hồ sơ...');
+      try {
+        const res = await callBackend('getStaffData');
+        setLoading(false);
+        if (!res.success) {
+          localStorage.removeItem('ns_staff_token');
+          showLogin();
+          showToast(res.message, 'warning');
+          return;
+        }
+        NV.session = res.session;
+        NV.config = res.config || {};
+        NV.tabs = res.tabs || [];
+        NV.fields = res.fields || [];
+        NV.danhMuc = res.danhMuc || {};
+        NV.headers = res.headers || [];
+        NV.listData = res.records || [];
+        NV.duplicateMap = res.duplicateMap || {};
+
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('nvWorkspace').classList.add('active');
+        document.getElementById('nvSchoolName').textContent = (NV.config.TEN_TRUONG || 'TIỂU HỌC NGÔI SAO') + ' — TIẾP NHẬN';
+        document.getElementById('nvUserInfo').textContent = `Xin chào: ${NV.session.username} (${NV.session.displayRole})`;
+        renderBrandLogo(document.getElementById('nvLogo'), NV.config.URL_LOGO);
+
+        ['btnScanQR', 'btnOpenViewer', 'viewerStatusPill', 'btnExportExcel', 'btnRefresh', 'btnLogout'].forEach(id => {
+          document.getElementById(id).style.display = 'inline-flex';
+        });
+        if (NV.session.role === 'ADMIN' || NV.session.role === 'CHU_DAU_TU') {
+          document.getElementById('btnGoAdmin').style.display = 'inline-flex';
+        }
+
+        updateStatsAndFilters();
+        renderRecordList();
+        setupSyncChannel();
+      } catch (err) {
+        setLoading(false);
+        showToast('Lỗi tải dữ liệu: ' + err.message, 'error');
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('nvWorkspace').classList.remove('active');
+      ['btnScanQR', 'btnOpenViewer', 'viewerStatusPill', 'btnExportExcel', 'btnRefresh', 'btnGoAdmin', 'btnLogout'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('lgUser').value.trim();
+      const password = document.getElementById('lgPass').value.trim();
+      setLoading(true, 'Đang xác thực tài khoản...');
+      try {
+        const res = await callBackend('login', { username, password });
+        setLoading(false);
+        if (!res.success) {
+          showToast(res.message || 'Đăng nhập thất bại.', 'error');
+          return;
+        }
+        localStorage.setItem('ns_staff_token', res.token);
+        showToast('Đăng nhập thành công!', 'success');
+        loadStaffWorkspace();
+      } catch (err) {
+        setLoading(false);
+        showToast('Lỗi đăng nhập: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('btnRefresh').onclick = loadStaffWorkspace;
+    document.getElementById('btnLogout').onclick = async () => {
+      try { await callBackend('logout'); } catch (e) {}
+      localStorage.removeItem('ns_staff_token');
+      showLogin();
+      showToast('Đã đăng xuất.', 'info');
+    };
+
+    // Tự động kiểm tra phiên hiện có
+    if (localStorage.getItem('ns_staff_token')) {
+      loadStaffWorkspace();
+    }
+  </script>
+</body>
+</html>
