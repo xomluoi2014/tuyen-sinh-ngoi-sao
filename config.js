@@ -1,163 +1,115 @@
 /**
  * ============================================================================
- * FILE: config.js — CẤU HÌNH KẾT NỐI DUY NHẤT CHO TOÀN BỘ GITHUB PAGES
+ * FILE: config.js — CẤU HÌNH DUY NHẤT CHO TOÀN BỘ HỆ THỐNG GITHUB PAGES
  * ============================================================================
- * HƯỚNG DẪN:
- * Sau khi dán Code2.gs vào Google Apps Script và Triển khai (Deploy Web App),
- * anh chỉ cần dán đường link .../exec vào biến GAS_API_URL bên dưới (1 chỗ duy nhất).
+ * Lưu ý: Nếu anh chọn "Quản lý các bản triển khai -> Phiên bản mới" trên GAS,
+ * đường link Web App giữ nguyên như bên dưới (không cần sửa lại).
+ * Nếu anh tạo một bản triển khai mới có link khác, chỉ cần dán link mới vào dòng GAS_API_URL.
  */
 
 window.APP_CONFIG = {
-  // >>> DÁN ĐƯỜNG LINK WEB APP APPS SCRIPT CỦA ANH VÀO DÒNG DƯỚI ĐÂY <<<
   GAS_API_URL: 'https://script.google.com/macros/s/AKfycbxOU7-IYX10t-4NQbn7VevNK4YZFFOTxcSL-pyznQ8J2V5ma-P749gBy7vpZYitLYVc_w/exec',
-
-  // Kênh đồng bộ giữa Màn hình Nhân viên và Màn hình Phụ huynh
-  SYNC_CHANNEL_NAME: 'NgoiSao_TuyenSinh_Sync_v2',
-
-  // Bật chống mở DevTools (true = bật, false = tắt khi anh đang cần debug)
+  SYNC_CHANNEL: 'ts-sync-channel',
   PROTECT_DEVTOOLS: true
 };
 
 /**
- * Hàm gọi Backend API thông minh (dùng POST text/plain để né CORS Preflight của GAS)
+ * Gọi Backend GAS (Code2.gs doPost) dùng text/plain để tránh CORS Preflight
  */
-window.callBackend = async function(action, payload = {}, token = '') {
-  const url = (window.APP_CONFIG.GAS_API_URL || '').trim();
-  if (!url || url.includes('DÁN_MÃ_TRIỂN_KHAI')) {
-    throw new Error('Chưa cấu hình GAS_API_URL trong file config.js! Vui lòng mở config.js và dán link Web App của Google Apps Script vào.');
+window.callBackend = async function(action, payload, authOverride) {
+  var url = (window.APP_CONFIG.GAS_API_URL || '').trim();
+  if (!url || !/^https:\/\/script\.google\.com\/macros\/s\//i.test(url)) {
+    throw new Error('Link GAS_API_URL trong config.js chưa hợp lệ! Vui lòng dán link Web App .../exec vào file config.js.');
   }
 
-  const body = JSON.stringify({
-    action: action,
-    payload: payload || {},
-    token: token || localStorage.getItem('ns_staff_token') || ''
-  });
+  var auth = authOverride || null;
+  if (!auth) {
+    try {
+      var saved = localStorage.getItem('ts_auth_session');
+      if (saved) {
+        var p = JSON.parse(saved);
+        if (p && (p.token || p.password)) {
+          auth = { username: p.username || '', password: p.password || '', token: p.token || '' };
+        }
+      }
+    } catch (e) {}
+  }
 
-  const resp = await fetch(url, {
+  var resp = await fetch(url, {
     method: 'POST',
     mode: 'cors',
     redirect: 'follow',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8'
-    },
-    body: body
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      action: action,
+      payload: payload || {},
+      auth: auth || {}
+    })
   });
 
   if (!resp.ok) {
-    throw new Error('Máy chủ phản hồi lỗi HTTP ' + resp.status);
+    throw new Error('Máy chủ Apps Script phản hồi lỗi HTTP ' + resp.status);
   }
-  const data = await resp.json();
-  return data;
+  return await resp.json();
 };
 
 /**
- * Chống XSS an toàn
+ * Tải siêu tốc cấu hình + ghép danh mục hành chính tĩnh (DM_Tinh, DM_Xa, DM_Quoc_Tich)
+ * giúp giảm >90% dung lượng từ GAS và mở trang dưới 1 giây.
  */
-window.escapeHtml = function(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
+window.fetchSystemDataFast = async function(includeStaffFields) {
+  var staticPromise = fetch('danhmuc_hanhchinh.json', { cache: 'force-cache' })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; });
 
-/**
- * Tạo / lấy Device_ID chuẩn crypto.randomUUID() (128-bit entropy)
- */
-window.getDeviceId = function() {
-  let id = localStorage.getItem('ns_device_uuid');
-  if (!id) {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-      id = 'DEV_' + window.crypto.randomUUID();
-    } else {
-      id = 'DEV_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+  var staticDm = await staticPromise;
+  var hasStatic = Boolean(staticDm && staticDm.DM_Tinh && staticDm.DM_Xa);
+
+  var res = await window.callBackend('getData', {
+    includeStaffFields: Boolean(includeStaffFields),
+    skipHeavyDanhMuc: hasStatic
+  });
+
+  if (!res || res.success === false) {
+    throw new Error((res && res.error) ? res.error : 'Không tải được dữ liệu hệ thống!');
+  }
+
+  res.danh_muc = res.danh_muc || {};
+  if (hasStatic) {
+    res.danh_muc.DM_Tinh = staticDm.DM_Tinh;
+    res.danh_muc.DM_Xa = staticDm.DM_Xa;
+    if (!res.danh_muc.DM_Quoc_Tich && staticDm.DM_Quoc_Tich) {
+      res.danh_muc.DM_Quoc_Tich = staticDm.DM_Quoc_Tich;
     }
-    localStorage.setItem('ns_device_uuid', id);
   }
-  return id;
+  return res;
 };
 
 /**
- * Chuẩn hóa chuỗi ngày dd/mm/yyyy
+ * Tạo đường link chuẩn tới trang phụ huynh (dùng cho QR bổ sung & Copy gửi Zalo)
  */
-window.formatDateInput = function(val) {
-  let digits = String(val || '').replace(/\D/g, '').slice(0, 8);
-  if (digits.length >= 5) return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
-  if (digits.length >= 3) return digits.slice(0, 2) + '/' + digits.slice(2);
-  return digits;
-};
-
-window.isValidDateVN = function(str) {
-  const m = String(str || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return false;
-  const d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
-  if (y < 1930 || y > 2035 || mo < 1 || mo > 12 || d < 1 || d > 31) return false;
-  const dt = new Date(y, mo - 1, d);
-  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+window.buildParentRevisionLink = function(ticket) {
+  var base = window.location.href.split('?')[0].split('#')[0];
+  var dir = base.substring(0, base.lastIndexOf('/') + 1);
+  return dir + 'phuhuynh.html?ticket=' + encodeURIComponent(String(ticket || '').trim());
 };
 
 /**
- * Hiển thị thông báo Toast góc trên bên phải
+ * Chặn chuột phải / F12 (Mở ngoại lệ cho #ticketCardImage & .allow-context để phụ huynh nhấn giữ lưu ảnh QR)
  */
-window.showToast = function(msg, type = 'info', duration = 3500) {
-  let container = document.getElementById('ns-toast-box');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'ns-toast-box';
-    container.className = 'ns-toast-box';
-    document.body.appendChild(container);
-  }
-  const el = document.createElement('div');
-  el.className = 'ns-toast ns-toast-' + type;
-  el.textContent = msg;
-  container.appendChild(el);
-  requestAnimationFrame(() => el.classList.add('show'));
-  setTimeout(() => {
-    el.classList.remove('show');
-    setTimeout(() => el.remove(), 300);
-  }, duration);
-};
-
-/**
- * Gắn ảnh Logo an toàn bằng DOM element
- */
-window.renderBrandLogo = function(containerEl, logoUrl) {
-  if (!containerEl) return;
-  containerEl.innerHTML = '';
-  if (logoUrl && /^https?:\/\//i.test(logoUrl)) {
-    const img = document.createElement('img');
-    img.src = logoUrl;
-    img.alt = 'Logo Trường';
-    img.onerror = function() {
-      containerEl.innerHTML = '<span style="font-size:24px;">⭐</span>';
-    };
-    containerEl.appendChild(img);
-  } else {
-    containerEl.innerHTML = '<span style="font-size:24px;">⭐</span>';
-  }
-};
-
-/**
- * Bảo vệ giao diện chống nhấn F12 / Chuột phải
- * ĐÃ MỞ NGOẠI LỆ cho #ticketCardImage để phụ huynh nhấn giữ lưu ảnh QR trên Zalo/iPhone
- */
-(function initProtection() {
+(function initAntiInspect() {
   if (!window.APP_CONFIG.PROTECT_DEVTOOLS) return;
   document.addEventListener('contextmenu', function(e) {
-    if (e.target && (e.target.id === 'ticketCardImage' || e.target.closest && e.target.closest('.allow-context'))) {
-      return; // Cho phép nhấn giữ lưu ảnh thẻ QR
+    if (e.target && (e.target.id === 'ticketCardImage' || (e.target.closest && e.target.closest('.allow-context')))) {
+      return;
     }
     e.preventDefault();
-  });
+  }, true);
   document.addEventListener('keydown', function(e) {
-    if (
-      e.key === 'F12' ||
-      (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'i', 'j', 'c'].includes(e.key)) ||
-      (e.ctrlKey && (e.key === 'u' || e.key === 'U'))
-    ) {
-      e.preventDefault();
-    }
-  });
+    var k = (e.key || '').toUpperCase();
+    var code = e.keyCode || e.which;
+    if (code === 123 || k === 'F12') { e.preventDefault(); e.stopPropagation(); return false; }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C', 'K'].indexOf(k) !== -1) { e.preventDefault(); e.stopPropagation(); return false; }
+    if ((e.ctrlKey || e.metaKey) && ['U', 'S'].indexOf(k) !== -1) { e.preventDefault(); e.stopPropagation(); return false; }
+  }, true);
 })();

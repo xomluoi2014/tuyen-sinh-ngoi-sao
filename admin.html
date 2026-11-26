@@ -1,554 +1,1251 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cổng Quản Trị & Báo Cáo – Trường Tiểu học Ngôi Sao</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    .adm-layout { max-width: 1240px; margin: 18px auto 40px; padding: 0 16px; display: none; }
-    .adm-layout.active { display: block; }
-    .adm-nav {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
-      background: #fff; padding: 8px; border-radius: 16px; border: 1px solid var(--brand-border);
-    }
-    .adm-tab-btn {
-      padding: 9px 16px; border-radius: 10px; border: none; background: transparent;
-      font-family: inherit; font-weight: 700; font-size: 13.5px; color: var(--ink-muted); cursor: pointer;
-    }
-    .adm-tab-btn.active { background: var(--brand-primary); color: #fff; }
-    .adm-pane { display: none; }
-    .adm-pane.active { display: block; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#4e972e">
+<title>Cổng Quản Trị & Chủ Đầu Tư | Tiểu học Ngôi Sao</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234e972e'/%3E%3Cpath d='M32 10l6.6 13.4 14.8 2.1-10.7 10.4 2.5 14.7L32 43.7 18.8 50.6l2.5-14.7L10.6 25.5l14.8-2.1z' fill='%23f4c43f'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cổng Quản Trị & Báo Cáo Chủ Đầu Tư | Trường Tiểu học Ngôi Sao">
+<meta property="og:description" content="Thống kê biểu đồ thời gian thực, trình tạo Form Builder và thiết kế mẫu xuất Excel.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+:root {
+  --primary: #4e972e;
+  --primary-dark: #3b7621;
+  --primary-light: #eaf6e3;
+  --accent: #f4c43f;
+  --bg: #f4fbea;
+  --surface: #ffffff;
+  --ink: #182b45;
+  --muted: #526550;
+  --line: #dcebc5;
+  --danger: #e74c3c;
+  --warn: #d9822b;
+  --info: #1756a9;
+  --radius: 20px;
+  --font: 'Quicksand', sans-serif;
+  --font-num: 'Inter', sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; overflow-x: hidden; min-height: 100vh; }
+button, input, select, textarea { font: inherit; outline: none; }
+button { cursor: pointer; transition: 0.2s; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .kpi-card {
-      background: #fff; border: 1px solid var(--brand-border); border-radius: 16px;
-      padding: 16px; box-shadow: var(--shadow-sm);
-    }
-    .kpi-card .k-num { font-size: 28px; font-weight: 800; line-height: 1.1; margin-top: 6px; }
-    .kpi-card .k-lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
+#loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.96); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 17px; text-align: center; padding: 20px; }
+@keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.08);} 100% {transform: scale(1);} }
 
-    .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .bar-label { width: 140px; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-    .bar-track { flex: 1; height: 22px; background: #eef4ea; border-radius: 999px; overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand-primary), var(--brand-light)); border-radius: 999px; transition: width 0.4s ease; }
-    .bar-val { width: 48px; text-align: right; font-weight: 800; font-size: 13.5px; color: var(--brand-dark); }
+.toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #182b45; color: #fff; padding: 12px 24px; border-radius: 99px; font-weight: 700; font-family: var(--font-num); font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10001; max-width: 92vw; text-align: center; }
+.toast.show { bottom: 85px; }
+.toast.error { background: var(--danger); }
+.toast.success { background: var(--primary); }
 
-    .tbl-wrap { overflow-x: auto; }
-    table.adm-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    table.adm-tbl th, table.adm-tbl td {
-      border-bottom: 1px solid #e5efe0; padding: 8px 8px; text-align: left; vertical-align: middle;
-    }
-    table.adm-tbl th { background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; white-space: nowrap; }
-    table.adm-tbl input, table.adm-tbl select {
-      padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 7px; font-family: inherit; font-size: 12.5px; width: 100%;
-    }
+#appScreen { display: none; min-height: 100vh; padding-bottom: 84px; }
 
-    .pwd-cell { display: flex; align-items: center; gap: 4px; }
-    .pwd-cell button {
-      border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 7px; padding: 5px 8px; cursor: pointer;
-    }
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(8px); border-bottom: 1.5px solid var(--line);
+  padding: 10px 20px; min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.brand-symbol { width: 42px; height: 42px; border-radius: 12px; background: var(--primary); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 20px; flex-shrink: 0; overflow: hidden; border: 1px solid var(--line); }
+.brand-symbol img { width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 2px; }
+.brand-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.brand-name { font-size: 15px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); line-height: 1.2; }
+.brand-sub { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+.user-label { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.role-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; background: var(--accent); color: #111; white-space: nowrap; flex-shrink: 0; line-height: 1.4; }
 
-    @media (max-width: 900px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-  </style>
+.top-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.btn-top { border: 1.5px solid var(--line); background: #fff; color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 12.5px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; text-decoration: none; }
+.btn-top:hover { background: var(--primary-light); border-color: var(--primary); }
+
+.shell { max-width: 1380px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 22px; align-items: start; }
+
+.sidebar { background: #fff; border: 1.5px solid var(--line); border-radius: var(--radius); padding: 16px 12px; position: sticky; top: 88px; box-shadow: 0 8px 25px rgba(0,0,0,0.03); }
+.nav-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 4px 12px 10px; }
+.nav-list { display: flex; flex-direction: column; gap: 6px; }
+.nav-btn { width: 100%; border: none; background: transparent; padding: 13px 14px; border-radius: 14px; display: flex; align-items: center; gap: 12px; color: var(--muted); font-weight: 800; font-size: 14px; text-align: left; }
+.nav-btn .nav-ic { font-size: 18px; width: 24px; text-align: center; }
+.nav-btn:hover:not(.active) { background: var(--bg); color: var(--ink); }
+.nav-btn.active { background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(78,151,46,0.22); }
+
+.content-pane { display: none; flex-direction: column; gap: 18px; min-width: 0; }
+.content-pane.active { display: flex; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.kpi-card { background: #fff; border: 1.5px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; min-height: 128px; }
+.kpi-card::after { content: ''; position: absolute; right: -15px; bottom: -15px; width: 68px; height: 68px; border-radius: 50%; opacity: 0.12; pointer-events: none; }
+.kpi-total::after { background: var(--info); }
+.kpi-wait::after { background: var(--warn); }
+.kpi-ok::after { background: var(--primary); }
+.kpi-no::after { background: var(--danger); }
+
+.kpi-label { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.3; min-height: 30px; display: flex; align-items: flex-start; }
+.kpi-val { font-family: var(--font-num); font-size: 32px; font-weight: 800; margin: 4px 0 6px; color: var(--ink); line-height: 1; }
+.kpi-sub { font-size: 12px; font-weight: 700; color: var(--muted); font-family: var(--font-num); line-height: 1.3; }
+
+.charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.card { background: #fff; border: 1.5px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 6px 22px rgba(0,0,0,0.03); min-width: 0; }
+.card-full { grid-column: 1 / -1; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.card-title { font-size: 16.5px; font-weight: 800; margin: 0; color: var(--ink); display: flex; align-items: center; gap: 8px; line-height: 1.3; }
+.chart-box { position: relative; width: 100%; height: 260px; }
+
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 14px; }
+table { width: 100%; border-collapse: collapse; font-family: var(--font-num); min-width: 520px; }
+th, td { padding: 10px 10px; text-align: left; border-bottom: 1px solid #f0f4ec; font-size: 12.5px; vertical-align: middle; }
+th { background: #f8fcf4; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.4px; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafef7; }
+
+.fb-inp { width: 100%; border: 1px solid #c8dcae; border-radius: 8px; padding: 6px 8px; font-size: 12.5px; font-weight: 700; font-family: var(--font-num); background: #fff; color: var(--ink); }
+.fb-inp:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(78,151,46,0.15); }
+.fb-sel { border: 1px solid #c8dcae; border-radius: 8px; padding: 6px 7px; font-size: 12px; font-weight: 700; font-family: var(--font-num); background: #fff; }
+
+.badge { display: inline-block; padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 11.5px; font-family: var(--font-num); white-space: nowrap; }
+.bg-cho { background: #fff3cd; color: #856404; }
+.bg-duyet { background: #d4edda; color: #155724; }
+.bg-loai { background: #fce8e8; color: #c0392b; }
+.bg-role-admin { background: #e8f0fe; color: #1756a9; }
+.bg-role-cdt { background: #fef5d1; color: #946200; }
+.bg-role-nv { background: #eaf6e3; color: #2d6b12; }
+
+.excel-layout { display: grid; grid-template-columns: 1fr 1.15fr; gap: 20px; align-items: start; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-group label { font-size: 13px; font-weight: 800; color: var(--ink); }
+.control { width: 100%; border: 1.5px solid #c8dcae; border-radius: 12px; padding: 11px 14px; font-size: 14px; font-weight: 700; font-family: var(--font-num); background: #fff; color: var(--ink); }
+.control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(78,151,46,0.15); }
+
+.pwd-wrap { display: flex; align-items: center; gap: 6px; }
+.pwd-eye-btn { border: 1px solid #c8dcae; background: #f8fcf4; border-radius: 8px; padding: 5px 8px; font-size: 13px; }
+.pwd-eye-btn:hover { background: var(--primary-light); }
+
+.chip-pool { display: flex; flex-wrap: wrap; gap: 7px; max-height: 170px; overflow-y: auto; padding: 10px; background: #fbfdf8; border: 1.5px dashed var(--line); border-radius: 14px; }
+.chip-btn { border: 1px solid #c8dcae; background: #fff; color: var(--ink); border-radius: 99px; padding: 6px 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }
+.chip-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chip-btn.special { background: #fff8e0; border-color: #f4c43f; color: #855800; }
+
+.col-builder-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px; margin: 12px 0; }
+.col-item { display: flex; align-items: center; gap: 8px; background: #fbfdf8; border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.col-idx { width: 26px; height: 26px; border-radius: 7px; background: var(--primary-light); color: var(--primary); display: grid; place-items: center; font-weight: 800; font-size: 12px; font-family: var(--font-num); flex-shrink: 0; }
+.col-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.col-source-tag { font-size: 11px; color: var(--muted); font-weight: 700; font-family: var(--font-num); }
+.col-title-inp { width: 100%; border: 1px solid #c8dcae; border-radius: 8px; padding: 6px 9px; font-size: 13px; font-weight: 700; font-family: var(--font-num); }
+.col-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.btn-icon { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.btn-icon:hover { background: var(--primary-light); }
+.btn-icon.del:hover { background: #fce8e8; color: var(--danger); border-color: #f5c6cb; }
+
+.btn { border: none; border-radius: 12px; padding: 11px 16px; font-weight: 800; font-size: 13.5px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: var(--font); }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(78,151,46,0.2); }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-blue { background: var(--info); color: #fff; box-shadow: 0 6px 16px rgba(23,86,169,0.2); }
+.btn-outline { background: #fff; border: 1.5px solid #c8dcae; color: var(--ink); }
+.btn-danger { background: #fce8e8; color: var(--danger); }
+
+.filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+
+@media (max-width: 960px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .excel-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; padding: 12px; gap: 14px; }
+  .sidebar { position: fixed; bottom: 0; left: 0; right: 0; top: auto; z-index: 90; border-radius: 20px 20px 0 0; padding: 8px 6px; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); box-shadow: 0 -6px 25px rgba(0,0,0,0.08); border: none; border-top: 1.5px solid var(--line); }
+  .nav-title { display: none; }
+  .nav-list { flex-direction: row; justify-content: space-around; gap: 2px; }
+  .nav-btn { flex-direction: column; gap: 3px; padding: 7px 4px; font-size: 10.5px; text-align: center; border-radius: 12px; justify-content: center; }
+  .nav-btn .nav-ic { font-size: 18px; width: auto; }
+  .filter-grid { grid-template-columns: 1fr; }
+  .kpi-card { padding: 15px; min-height: 118px; border-radius: 18px; }
+  .kpi-val { font-size: 28px; }
+  .card { padding: 16px; border-radius: 18px; }
+  .topbar { padding: 8px 12px; min-height: 60px; }
+  .brand-symbol { width: 38px; height: 38px; border-radius: 10px; }
+  .brand-name { font-size: 13.5px; }
+  .user-label { max-width: 85px; font-size: 11.5px; }
+  .role-badge { font-size: 10.5px; padding: 2px 7px; }
+  .hide-mobile { display: none !important; }
+  .btn-top { padding: 8px 10px; font-size: 12px; }
+}
+</style>
 </head>
 <body>
-  <div class="loader-overlay" id="loader">
-    <div class="spinner"></div>
-    <div id="loaderText" style="font-weight:700; color:var(--brand-dark);">Đang tải cổng quản trị...</div>
-  </div>
 
+<div id="loading-overlay">
+  <div style="font-size:44px; margin-bottom:12px; animation: pulse 1.4s infinite;">📊</div>
+  <div id="loadingText">ĐANG TẢI DỮ LIỆU BÁO CÁO...</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="appScreen">
   <header class="topbar">
-    <div class="brand-wrap">
-      <div class="brand-symbol" id="admLogo">⭐</div>
-      <div>
-        <div class="brand-title" id="admSchool">CỔNG QUẢN TRỊ & BÁO CÁO TUYỂN SINH</div>
-        <div class="brand-sub" id="admUser">Vui lòng đăng nhập tài khoản Admin / Chủ đầu tư</div>
+    <div class="brand">
+      <div class="brand-symbol" id="topLogo">⭐</div>
+      <div class="brand-text">
+        <div class="brand-name" id="topSchoolName">TIỂU HỌC NGÔI SAO</div>
+        <div class="brand-sub">
+          <span class="user-label" id="topUserName">👤 Admin</span>
+          <span class="role-badge" id="topUserRole">QUẢN TRỊ</span>
+        </div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <a href="nhanvien.html" class="btn btn-outline btn-sm">🖥️ Cổng Nhân viên</a>
-      <button class="btn btn-outline btn-sm" id="btnAdmLogout" style="display:none;">Đăng xuất</button>
-      <a href="index.html" class="btn btn-outline btn-sm">🏠</a>
+    <div class="top-actions">
+      <a class="btn-top admin-only" href="nhanvien.html" title="Mở Cổng Tiếp Nhận Nhân Viên">🎧 <span class="hide-mobile">Cổng Tiếp Nhận</span></a>
+      <button class="btn-top" onclick="refreshPortalData()" title="Làm mới số liệu">🔄 <span class="hide-mobile">Làm mới</span></button>
+      <button class="btn-top" onclick="doLogout()">Đăng xuất</button>
     </div>
   </header>
 
-  <!-- Đăng nhập -->
-  <section id="admLoginBox" style="max-width:400px; margin:48px auto; padding:0 16px;">
-    <div class="card">
-      <div style="text-align:center; margin-bottom:14px;">
-        <div style="font-size:40px;">🛡️</div>
-        <h2 style="margin:6px 0 4px; color:var(--brand-dark);">Đăng Nhập Quản Trị</h2>
-        <p style="margin:0; font-size:13px; color:var(--ink-muted);">Dành cho Admin hệ thống và Chủ đầu tư</p>
-      </div>
-      <form id="admLoginForm">
-        <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label">Tài khoản</label>
-          <input type="text" id="aUser" class="form-control" placeholder="admin hoặc chudautu" required>
-        </div>
-        <div class="form-group" style="margin-bottom:16px;">
-          <label class="form-label">Mật khẩu</label>
-          <input type="password" id="aPass" class="form-control" placeholder="Nhập mật khẩu" required>
-        </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Đăng nhập</button>
-      </form>
-    </div>
-  </section>
+  <div class="shell">
+    <aside class="sidebar" id="sidebarNav">
+      <div class="nav-title">DANH MỤC QUẢN LÝ</div>
+      <nav class="nav-list">
+        <button class="nav-btn active" id="nav_dashboard" onclick="switchPane('dashboard')">
+          <span class="nav-ic">📊</span><span>Thống kê</span>
+        </button>
+        <button class="nav-btn admin-only" id="nav_formbuilder" onclick="switchPane('formbuilder')">
+          <span class="nav-ic">📝</span><span>Biểu mẫu</span>
+        </button>
+        <button class="nav-btn admin-only" id="nav_excel" onclick="switchPane('excel')">
+          <span class="nav-ic">📥</span><span>Mẫu Excel</span>
+        </button>
+        <button class="nav-btn admin-only" id="nav_accounts" onclick="switchPane('accounts')">
+          <span class="nav-ic">👥</span><span>Nhân sự</span>
+        </button>
+        <button class="nav-btn admin-only" id="nav_config" onclick="switchPane('config')">
+          <span class="nav-ic">⚙️</span><span>Cấu hình</span>
+        </button>
+      </nav>
+    </aside>
 
-  <!-- Nội dung Quản trị -->
-  <main class="adm-layout" id="admMain">
-    <nav class="adm-nav" id="admNav">
-      <button class="adm-tab-btn active" data-pane="paneDash">📊 Báo cáo tổng quan</button>
-      <button class="adm-tab-btn admin-only" data-pane="paneConfig">⚙️ Cấu hình hệ thống</button>
-      <button class="adm-tab-btn admin-only" data-pane="paneForm">🧩 Trình tạo Form (Form Builder)</button>
-      <button class="adm-tab-btn admin-only" data-pane="paneAccounts">👥 Quản lý Nhân sự</button>
-      <button class="adm-tab-btn" data-pane="paneLogs">📜 Nhật ký hệ thống</button>
-    </nav>
-
-    <!-- TAB 1: DASHBOARD -->
-    <section class="adm-pane active" id="paneDash">
+    <!-- KHU VỰC 1: BẢNG THỐNG KÊ & 4 BIỂU ĐỒ (ĐÃ SỬA ĐÚNG TÊN CỘT ĐỊA LÝ) -->
+    <section class="content-pane active" id="pane_dashboard">
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="k-lbl">Tổng hồ sơ</div><div class="k-num" id="kTotal">0</div></div>
-        <div class="kpi-card"><div class="k-lbl">Chờ duyệt</div><div class="k-num" id="kCho" style="color:#0369a1;">0</div></div>
-        <div class="kpi-card"><div class="k-lbl">Đã duyệt</div><div class="k-num" id="kOk" style="color:#15803d;">0</div></div>
-        <div class="kpi-card"><div class="k-lbl">Chờ bổ sung</div><div class="k-num" id="kBs" style="color:#b45309;">0</div></div>
-        <div class="kpi-card"><div class="k-lbl">Đã loại</div><div class="k-num" id="kLoai" style="color:#b91c1c;">0</div></div>
+        <div class="kpi-card kpi-total">
+          <span class="kpi-label">Tổng hồ sơ</span>
+          <div class="kpi-val" id="kpiTotal">0</div>
+          <span class="kpi-sub">100% dữ liệu tiếp nhận</span>
+        </div>
+        <div class="kpi-card kpi-wait">
+          <span class="kpi-label">Chờ duyệt / Bổ sung</span>
+          <div class="kpi-val" id="kpiWait" style="color:var(--warn)">0</div>
+          <span class="kpi-sub">Đang chờ đối chiếu</span>
+        </div>
+        <div class="kpi-card kpi-ok">
+          <span class="kpi-label">Đã phê duyệt</span>
+          <div class="kpi-val" id="kpiApproved" style="color:var(--primary)">0</div>
+          <span class="kpi-sub" id="kpiApprovedSub">Tỷ lệ hoàn tất: 0%</span>
+        </div>
+        <div class="kpi-card kpi-no">
+          <span class="kpi-label">Đã từ chối / Loại</span>
+          <div class="kpi-val" id="kpiRejected" style="color:var(--danger)">0</div>
+          <span class="kpi-sub">Không đủ ĐK / Trùng</span>
+        </div>
       </div>
 
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-          <h3 style="margin:0; color:var(--brand-dark);">📈 Phân bổ hồ sơ hợp lệ theo Khối lớp</h3>
-          <button class="btn btn-primary btn-sm" id="btnDashExcel">⬇️ Xuất báo cáo Excel (.xlsx)</button>
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">🏫 Hồ sơ theo Khối lớp đăng ký</h3></div>
+          <div class="chart-box"><canvas id="chartGrade"></canvas></div>
         </div>
-        <div id="gradeBars"></div>
+
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">📌 Tỷ lệ Trạng thái xử lý</h3></div>
+          <div class="chart-box"><canvas id="chartStatus"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">🗺️ Phân bổ Địa lý (Top 10 Xã / Phường đăng ký)</h3></div>
+          <div class="chart-box"><canvas id="chartGeo"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">📈 Diễn biến số lượng hồ sơ theo ngày</h3></div>
+          <div class="chart-box"><canvas id="chartTimeline"></canvas></div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-head"><h3 class="card-title">📋 Bảng tổng hợp chi tiết theo Khối lớp</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Khối lớp</th><th>Tổng hồ sơ</th><th>Nam</th><th>Nữ</th>
+                  <th>Chờ xử lý</th><th>Đã duyệt</th><th>Đã loại</th><th>Tỷ lệ hoàn tất</th>
+                </tr>
+              </thead>
+              <tbody id="gradeSummaryBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- TAB 2: CẤU HÌNH HỆ THỐNG -->
-    <section class="adm-pane" id="paneConfig">
+    <!-- KHU VỰC 2: FORM BUILDER (CÓ THÊM TRƯỜNG MỚI / XÓA TRƯỜNG + TỰ TẠO CỘT Ho_So) -->
+    <section class="content-pane" id="pane_formbuilder">
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <div class="card-head">
           <div>
-            <h3 style="margin:0; color:var(--brand-dark);">⚙️ Cấu Hình Chung (Bảng Cau_Hinh)</h3>
-            <div style="font-size:12.5px; color:var(--ink-muted);">Bật/tắt cổng tuyển sinh, cập nhật Logo, Ảnh Banner, Mã ngoại lệ và Mẫu in Google Docs.</div>
+            <h3 class="card-title">🗂️ Quản lý các Tab (Các bước đăng ký)</h3>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;">
+              <b>YES</b>: Hiện cho Phụ huynh & Nhân viên | <b>STAFF</b>: Ẩn với Phụ huynh, chỉ hiện cho Nhân viên tại quầy.
+            </div>
           </div>
-          <button class="btn btn-primary" id="btnSaveConfig">💾 Lưu Cấu Hình</button>
+          <button class="btn btn-primary" onclick="saveFormBuilderChanges()">💾 Lưu toàn bộ Biểu mẫu</button>
         </div>
-        <div class="tbl-wrap">
-          <table class="adm-tbl">
+        <div class="table-wrap" style="margin-bottom:20px;">
+          <table>
             <thead>
-              <tr><th style="width:200px;">Khóa cấu hình</th><th>Giá trị</th><th style="width:260px;">Ghi chú</th></tr>
+              <tr><th style="width:65px;">Thứ tự</th><th>Mã Tab</th><th>Tên hiển thị của Tab</th><th style="width:230px;">Chế độ hiển thị</th></tr>
             </thead>
-            <tbody id="cfgBody"></tbody>
+            <tbody id="fbTabsBody"></tbody>
           </table>
         </div>
-      </div>
-    </section>
 
-    <!-- TAB 3: FORM BUILDER (Có nút Thêm/Xóa trường + tự đồng bộ cột Ho_So!) -->
-    <section class="adm-pane" id="paneForm">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <div class="card-head" style="margin-top:10px;">
           <div>
-            <h3 style="margin:0; color:var(--brand-dark);">🧩 Trình Tạo Biểu Mẫu Động (Form Builder)</h3>
-            <div style="font-size:12.5px; color:var(--ink-muted);">Khi thêm trường mới và bấm Lưu, hệ thống sẽ <b>tự động thêm cột tương ứng vào bảng Ho_So</b>.</div>
+            <h3 class="card-title">📝 Quản lý các Trường dữ liệu & Gợi ý nhập</h3>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:3px;">
+              Bấm <b>➕ Thêm trường mới</b> rồi Lưu — hệ thống sẽ tự động tạo thêm cột tương ứng bên bảng <b>Ho_So</b>!
+            </div>
           </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-outline" id="btnAddField">➕ Thêm trường mới</button>
-            <button class="btn btn-primary" id="btnSaveForm">💾 Lưu Form Builder</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="fbFilterTab" class="control" style="max-width:220px;padding:8px 10px;font-size:13px;" onchange="renderFormBuilderFields()">
+              <option value="">-- Tất cả các Tab --</option>
+            </select>
+            <button class="btn btn-outline" onclick="addNewFormBuilderField()">➕ Thêm trường mới</button>
           </div>
         </div>
-        <div class="tbl-wrap">
-          <table class="adm-tbl">
+
+        <div class="table-wrap">
+          <table>
             <thead>
               <tr>
-                <th style="width:130px;">ID_Truong</th>
-                <th style="width:170px;">Tên hiển thị</th>
-                <th style="width:125px;">Tab</th>
-                <th style="width:65px;">Thứ tự</th>
-                <th style="width:115px;">Kiểu nhập</th>
-                <th style="width:130px;">Nguồn DM</th>
-                <th style="width:75px;">Độ rộng</th>
-                <th style="width:75px;">Bắt buộc</th>
-                <th style="width:90px;">Hiển thị</th>
-                <th style="width:150px;">Placeholder</th>
-                <th style="width:50px;">Xóa</th>
+                <th style="width:58px;">TT</th>
+                <th style="min-width:130px;">Mã Cột (ID)</th>
+                <th style="min-width:165px;">Tên hiển thị</th>
+                <th style="min-width:135px;">Thuộc Tab</th>
+                <th style="min-width:110px;">Kiểu nhập</th>
+                <th style="min-width:120px;">Nguồn DM</th>
+                <th style="width:95px;">Độ rộng</th>
+                <th style="width:92px;">Bắt buộc</th>
+                <th style="width:96px;">Hiển thị</th>
+                <th style="min-width:190px;">Placeholder</th>
+                <th style="width:46px;">Xóa</th>
               </tr>
             </thead>
-            <tbody id="formBody"></tbody>
+            <tbody id="fbFieldsBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- TAB 4: QUẢN LÝ NHÂN SỰ (Ẩn mật khẩu dạng ••••• kèm nút con mắt 👁️!) -->
-    <section class="adm-pane" id="paneAccounts">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-          <div>
-            <h3 style="margin:0; color:var(--brand-dark);">👥 Quản Lý Tài Khoản Nhân Sự</h3>
-            <div style="font-size:12.5px; color:var(--ink-muted);">Mật khẩu được che kín mặc định khi trình chiếu, bấm biểu tượng 👁️ để xem khi cần nhắc mật khẩu cho nhân viên.</div>
+    <!-- KHU VỰC 3: THIẾT KẾ MẪU & XUẤT EXCEL TÙY CHỈNH -->
+    <section class="content-pane" id="pane_excel">
+      <div class="excel-layout">
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title">🛠️ Thiết kế Mẫu xuất Excel</h3>
+            <button class="btn btn-outline" style="padding:7px 12px; font-size:12px;" onclick="resetTemplateBuilder()">+ Tạo mẫu mới</button>
           </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-outline" id="btnAddAccount">➕ Thêm tài khoản</button>
-            <button class="btn btn-primary" id="btnSaveAccounts">💾 Lưu Nhân sự</button>
+
+          <div class="form-group">
+            <label>1. Chọn mẫu đã lưu để sửa (Hoặc tạo mẫu mới bên dưới)</label>
+            <select id="selSavedTemplateEdit" class="control" onchange="loadTemplateToBuilder(this.value)">
+              <option value="">-- Đang tạo mẫu mới --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>2. Tên mẫu xuất Excel *</label>
+            <input type="text" id="inpTemplateName" class="control" placeholder="VD: Mẫu danh sách nộp Phòng GD...">
+          </div>
+          <div class="form-group">
+            <label>3. Chèn nhanh cột vào mẫu (Chạm để thêm cột)</label>
+            <div class="chip-pool" id="chipPool"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:6px;">
+            <label>4. Danh sách cột trong mẫu (Đổi tên cột & sắp xếp thứ tự)</label>
+          </div>
+          <div class="col-builder-list" id="colBuilderList"></div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="saveCurrentTemplate()">💾 Lưu mẫu Excel này</button>
+            <button class="btn btn-danger" id="btnDeleteTemplate" style="display:none;" onclick="deleteCurrentTemplate()">🗑️ Xóa mẫu</button>
           </div>
         </div>
-        <div class="tbl-wrap">
-          <table class="adm-tbl">
-            <thead>
-              <tr>
-                <th style="width:160px;">Tài khoản</th>
-                <th style="width:200px;">Mật khẩu</th>
-                <th style="width:140px;">Vai trò</th>
-                <th style="width:130px;">Trạng thái</th>
-                <th>Ghi chú</th>
-                <th style="width:60px;">Xóa</th>
-              </tr>
-            </thead>
-            <tbody id="accBody"></tbody>
-          </table>
+
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">📥 Xuất danh sách ra Excel (.xlsx)</h3></div>
+          <div class="form-group">
+            <label>Chọn Mẫu Excel cần xuất</label>
+            <select id="selExportTemplate" class="control" onchange="renderExportPreview()"></select>
+          </div>
+          <div class="filter-grid">
+            <div class="form-group" style="margin:0;">
+              <label>Lọc Trạng thái</label>
+              <select id="expFilterStatus" class="control" onchange="renderExportPreview()">
+                <option value="">-- Tất cả --</option>
+                <option value="Chờ duyệt">Chờ duyệt</option>
+                <option value="Chờ bổ sung">Chờ bổ sung</option>
+                <option value="Đã duyệt">Đã duyệt</option>
+                <option value="Đã loại">Đã loại</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Lọc Khối lớp</label>
+              <select id="expFilterGrade" class="control" onchange="renderExportPreview()">
+                <option value="">-- Tất cả --</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Tìm kiếm từ khóa</label>
+              <input type="text" id="expFilterKeyword" class="control" placeholder="Tên, Mã HS, SĐT..." oninput="renderExportPreview()">
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin: 12px 0; flex-wrap:wrap; gap:10px;">
+            <div style="font-weight:800; color:var(--primary); font-family:var(--font-num);" id="expCountLabel">Khớp: 0 hồ sơ</div>
+            <button class="btn btn-blue" onclick="downloadCustomExcel()">📥 TẢI FILE EXCEL (.XLSX)</button>
+          </div>
+          <div style="font-size:12px; color:var(--muted); font-weight:700; margin-bottom:8px;">Xem trước cấu trúc cột (5 dòng đầu):</div>
+          <div class="table-wrap">
+            <table><thead id="expPreviewHead"></thead><tbody id="expPreviewBody"></tbody></table>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 5: NHẬT KÝ -->
-    <section class="adm-pane" id="paneLogs">
-      <div class="card">
-        <h3 style="margin:0 0 12px; color:var(--brand-dark);">📜 100 Thao Tác Hệ Thống Gần Nhất</h3>
-        <div class="tbl-wrap">
-          <table class="adm-tbl">
-            <thead>
-              <tr><th>Thời gian</th><th>Mã hồ sơ</th><th>Người thực hiện</th><th>Hành động</th><th>Ghi chú</th></tr>
-            </thead>
-            <tbody id="logBody"></tbody>
-          </table>
+    <!-- KHU VỰC 4: QUẢN LÝ NHÂN SỰ (ẨN MẬT KHẨU •••••• KÈM NÚT CON MẮT 👁️) -->
+    <section class="content-pane" id="pane_accounts">
+      <div class="excel-layout">
+        <div class="card">
+          <div class="card-head">
+            <h3 class="card-title" id="accFormTitle">➕ Cấp / Cập nhật Tài khoản</h3>
+            <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="resetAccountForm()">Làm mới ô</button>
+          </div>
+          <div class="form-group">
+            <label>Tên tài khoản (Username) *</label>
+            <input type="text" id="accUsername" class="control" placeholder="VD: nv_tuyensinh01">
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu *</label>
+            <div class="pwd-wrap">
+              <input type="password" id="accPassword" class="control" placeholder="Nhập mật khẩu cấp cho nhân sự">
+              <button type="button" class="pwd-eye-btn" style="padding:10px 12px;" onclick="toggleInputPwd('accPassword', this)" title="Hiện/Ẩn mật khẩu">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Vai trò phân quyền *</label>
+            <select id="accRole" class="control">
+              <option value="Nhân viên">Nhân viên (Tiếp nhận & Duyệt hồ sơ)</option>
+              <option value="Chủ đầu tư">Chủ đầu tư (Chỉ xem Báo cáo & Biểu đồ)</option>
+              <option value="Admin">Admin (Toàn quyền Quản trị hệ thống)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Trạng thái hoạt động</label>
+            <select id="accStatus" class="control">
+              <option value="Hoạt động">🟢 Đang hoạt động</option>
+              <option value="Khóa">🔴 Tạm khóa</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="width:100%;" onclick="saveAccount()">💾 Lưu Tài Khoản</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">👥 Danh sách Tài khoản hệ thống</h3>
+              <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;">Mật khẩu mặc định được che kín an toàn khi trình chiếu, bấm 👁️ để xem.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tài khoản</th><th>Mật khẩu</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+              <tbody id="accountsTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
-  </main>
 
-  <script src="config.js"></script>
-  <script>
-    const ADM = { data: null };
+    <!-- KHU VỰC 5: CẤU HÌNH HỆ THỐNG & HẸN GIỜ TỰ ĐỘNG -->
+    <section class="content-pane" id="pane_config">
+      <div class="card" style="max-width:780px;">
+        <div class="card-head"><h3 class="card-title">⚙️ Cấu hình Cổng Tuyển Sinh & Hẹn Giờ Tự Động</h3></div>
+        <div class="form-group">
+          <label>Trạng thái Cổng đăng ký Phụ huynh</label>
+          <select id="cfgTrangThai" class="control">
+            <option value="MỞ">🟢 MỞ (Cho phép phụ huynh nộp hồ sơ theo khung giờ)</option>
+            <option value="ĐÓNG">🔴 ĐÓNG KHẨN CẤP (Khóa cổng ngay lập tức)</option>
+          </select>
+        </div>
+        <div class="charts-grid" style="margin-bottom:14px;gap:12px;">
+          <div class="form-group" style="margin:0;">
+            <label>⏰ Hẹn giờ Tự động MỞ cổng (Tùy chọn)</label>
+            <input type="datetime-local" id="cfgThoiGianMo" class="control">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>⏳ Hẹn giờ Tự động ĐÓNG cổng (Tùy chọn)</label>
+            <input type="datetime-local" id="cfgThoiGianDong" class="control">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Thông báo hiển thị khi đóng cổng / hết hạn</label>
+          <input type="text" id="cfgThongBaoDong" class="control">
+        </div>
+        <div class="charts-grid" style="margin-bottom:14px;gap:12px;">
+          <div class="form-group" style="margin:0;">
+            <label>🔑 Mã Ngoại Lệ (MA_NGOAI_LE)</label>
+            <input type="text" id="cfgMaNgoaiLe" class="control" placeholder="VD: NS2026">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>📱 Số hồ sơ tối đa / thiết bị / ngày</label>
+            <input type="number" id="cfgSoHoSoToiDa" class="control" min="1" max="99" placeholder="VD: 3">
+          </div>
+        </div>
+        <div class="charts-grid" style="margin-bottom:14px;gap:12px;">
+          <div class="form-group" style="margin:0;">
+            <label>Tên trường hiển thị</label>
+            <input type="text" id="cfgTenTruong" class="control">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Năm học tuyển sinh</label>
+            <input type="text" id="cfgNamHoc" class="control">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Hotline hỗ trợ tuyển sinh</label>
+          <input type="text" id="cfgHotline" class="control">
+        </div>
+        <div class="form-group">
+          <label>Link ảnh Logo trường (URL vuông 1:1)</label>
+          <input type="text" id="cfgUrlLogo" class="control" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Link ảnh Banner Tuyển sinh (URL vuông 1:1)</label>
+          <input type="text" id="cfgUrlAnh" class="control" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>ID Google Docs Mẫu Phiếu In (ID_TEMPLATE_IN)</label>
+          <input type="text" id="cfgTemplateIn" class="control">
+        </div>
+        <button class="btn btn-primary" onclick="saveSystemConfig()">💾 Lưu Cấu Hình Hệ Thống</button>
+      </div>
+    </section>
+  </div>
+</div>
 
-    function setLoading(show, text = 'Đang xử lý...') {
-      document.getElementById('loaderText').textContent = text;
-      document.getElementById('loader').classList.toggle('open', show);
-    }
+<script src="config.js"></script>
+<script>
+  let authCreds = { username: '', password: '', token: '', roleCode: '' };
+  let portalData = { config: {}, records: [], availableColumns: [], excelTemplates: [], accounts: [], formBuilderTabs: [], formBuilderFields: [] };
+  let chartInstances = { grade: null, status: null, geo: null, timeline: null };
+  let currentEditingTemplateId = '';
+  let builderColumns = [];
 
-    // Chuyển tab
-    document.querySelectorAll('.adm-tab-btn').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.adm-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.adm-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.pane).classList.add('active');
-      };
-    });
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
 
-    function renderDashboard() {
-      const st = ADM.data.stats;
-      document.getElementById('kTotal').textContent = st.total;
-      document.getElementById('kCho').textContent = st.choDuyet;
-      document.getElementById('kOk').textContent = st.daDuyet;
-      document.getElementById('kBs').textContent = st.choBoSung;
-      document.getElementById('kLoai').textContent = st.daLoai;
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.className = `toast ${type} show`;
+    t.innerText = msg;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3300);
+  }
 
-      const bars = document.getElementById('gradeBars');
-      bars.innerHTML = '';
-      const entries = Object.entries(st.byGrade || {});
-      const maxVal = Math.max(1, ...entries.map(e => e[1]));
-      if (!entries.length) {
-        bars.innerHTML = '<div style="color:var(--ink-muted);">Chưa có dữ liệu hồ sơ.</div>';
+  function setLoading(show, text = 'ĐANG ĐỒNG BỘ SỐ LIỆU...') {
+    document.getElementById('loadingText').innerText = text;
+    document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+  }
+
+  function redirectToLogin() {
+    localStorage.removeItem('ts_auth_session');
+    window.location.href = 'login.html';
+  }
+
+  window.onload = function() {
+    let saved = localStorage.getItem('ts_auth_session');
+    if (!saved) { redirectToLogin(); return; }
+    try {
+      let parsed = JSON.parse(saved);
+      if (parsed && parsed.username && (parsed.token || parsed.password)) {
+        authCreds = { username: parsed.username, password: parsed.password || '', token: parsed.token || '', roleCode: parsed.roleCode || '' };
+        fetchPortalData();
+      } else redirectToLogin();
+    } catch (e) { redirectToLogin(); }
+  };
+
+  async function fetchPortalData(doneCallback) {
+    setLoading(true);
+    try {
+      const res = await callBackend('getAdminPortalData', {}, authCreds);
+      setLoading(false);
+      if (doneCallback) doneCallback();
+      if (!res || !res.success) {
+        showToast((res && res.error) || 'Phiên đăng nhập hết hạn!', 'error');
+        setTimeout(redirectToLogin, 1200);
         return;
       }
-      entries.sort((a, b) => a[0].localeCompare(b[0])).forEach(([g, cnt]) => {
-        const pct = Math.round((cnt / maxVal) * 100);
-        const row = document.createElement('div');
-        row.className = 'bar-row';
-        row.innerHTML = `
-          <div class="bar-label">${escapeHtml(g)}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-          <div class="bar-val">${cnt}</div>`;
-        bars.appendChild(row);
-      });
-    }
-
-    function renderConfigTable() {
-      const tb = document.getElementById('cfgBody');
-      tb.innerHTML = '';
-      (ADM.data.configRows || []).forEach(c => {
-        if (c.KEY === 'MAU_XUAT_EXCEL_JSON') return;
-        const tr = document.createElement('tr');
-        const valInput = c.KEY === 'TRANG_THAI'
-          ? `<select data-cfg-key="${escapeHtml(c.KEY)}">
-               <option value="MỞ" ${c.VALUE.toUpperCase() === 'MỞ' ? 'selected' : ''}>MỞ (Cho phép phụ huynh đăng ký)</option>
-               <option value="ĐÓNG" ${c.VALUE.toUpperCase() !== 'MỞ' ? 'selected' : ''}>ĐÓNG (Tạm đóng cổng)</option>
-             </select>`
-          : `<input type="text" data-cfg-key="${escapeHtml(c.KEY)}" value="${escapeHtml(c.VALUE)}">`;
-        tr.innerHTML = `
-          <td><b>${escapeHtml(c.KEY)}</b></td>
-          <td>${valInput}</td>
-          <td style="color:var(--ink-muted); font-size:12px;">${escapeHtml(c.GHI_CHU)}</td>`;
-        tb.appendChild(tr);
-      });
-    }
-
-    function createFormRowTr(f) {
-      const tr = document.createElement('tr');
-      const tabsOpts = (ADM.data.tabs || []).map(t =>
-        `<option value="${escapeHtml(t.ID_Tab)}" ${t.ID_Tab === f.ID_Tab ? 'selected' : ''}>${escapeHtml(t.ID_Tab)}</option>`
-      ).join('');
-      const types = ['Text', 'Date', 'Select_DM', 'Select_Tinh', 'Select_Xa', 'Number', 'Textarea', 'Checkbox'];
-      const typeOpts = types.map(tp => `<option value="${tp}" ${tp === f.Loai_O_Nhap ? 'selected' : ''}>${tp}</option>`).join('');
-
-      tr.innerHTML = `
-        <td><input type="text" class="fb-id" value="${escapeHtml(f.ID_Truong || '')}" placeholder="VD: So_Thich_Be"></td>
-        <td><input type="text" class="fb-name" value="${escapeHtml(f.Ten_Hien_Thi || '')}"></td>
-        <td><select class="fb-tab">${tabsOpts}</select></td>
-        <td><input type="number" class="fb-order" value="${escapeHtml(f.Thu_Tu || 1)}"></td>
-        <td><select class="fb-type">${typeOpts}</select></td>
-        <td><input type="text" class="fb-src" value="${escapeHtml(f.Nguon_Du_Lieu || '')}" placeholder="DM_..."></td>
-        <td>
-          <select class="fb-width">
-            <option value="0.5" ${String(f.Do_Rong) === '0.5' ? 'selected' : ''}>0.5</option>
-            <option value="1" ${String(f.Do_Rong) !== '0.5' ? 'selected' : ''}>1</option>
-          </select>
-        </td>
-        <td>
-          <select class="fb-req">
-            <option value="YES" ${f.Bat_Buoc === 'YES' ? 'selected' : ''}>YES</option>
-            <option value="NO" ${f.Bat_Buoc !== 'YES' ? 'selected' : ''}>NO</option>
-          </select>
-        </td>
-        <td>
-          <select class="fb-show">
-            <option value="YES" ${f.Hien_Thi === 'YES' ? 'selected' : ''}>YES</option>
-            <option value="STAFF" ${f.Hien_Thi === 'STAFF' ? 'selected' : ''}>STAFF</option>
-            <option value="NO" ${f.Hien_Thi === 'NO' ? 'selected' : ''}>NO</option>
-          </select>
-        </td>
-        <td><input type="text" class="fb-ph" value="${escapeHtml(f.Placeholder || '')}"></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">🗑️</button></td>`;
-      return tr;
-    }
-
-    function renderFormBuilder() {
-      const tb = document.getElementById('formBody');
-      tb.innerHTML = '';
-      (ADM.data.fields || []).forEach(f => tb.appendChild(createFormRowTr(f)));
-    }
-
-    function createAccountTr(a) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input type="text" class="ac-u" value="${escapeHtml(a.Tai_Khoan || '')}"></td>
-        <td>
-          <div class="pwd-cell">
-            <input type="password" class="ac-p" value="${escapeHtml(a.Mat_Khau || '')}">
-            <button type="button" title="Hiện/Ẩn mật khẩu" onclick="const inp=this.previousElementSibling; inp.type=inp.type==='password'?'text':'password'; this.textContent=inp.type==='password'?'👁️':'🙈';">👁️</button>
-          </div>
-        </td>
-        <td>
-          <select class="ac-r">
-            <option value="Admin" ${a.Vai_Tro === 'Admin' ? 'selected' : ''}>Admin</option>
-            <option value="Nhân viên" ${a.Vai_Tro === 'Nhân viên' ? 'selected' : ''}>Nhân viên</option>
-            <option value="Chủ đầu tư" ${a.Vai_Tro === 'Chủ đầu tư' ? 'selected' : ''}>Chủ đầu tư</option>
-          </select>
-        </td>
-        <td>
-          <select class="ac-s">
-            <option value="Hoạt động" ${a.Trang_Thai !== 'Khóa' ? 'selected' : ''}>Hoạt động</option>
-            <option value="Khóa" ${a.Trang_Thai === 'Khóa' ? 'selected' : ''}>Khóa</option>
-          </select>
-        </td>
-        <td><input type="text" class="ac-n" value="${escapeHtml(a.Ghi_Chu || '')}"></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">🗑️</button></td>`;
-      return tr;
-    }
-
-    function renderAccounts() {
-      const tb = document.getElementById('accBody');
-      tb.innerHTML = '';
-      (ADM.data.accounts || []).forEach(a => tb.appendChild(createAccountTr(a)));
-    }
-
-    function renderLogs() {
-      const tb = document.getElementById('logBody');
-      tb.innerHTML = '';
-      (ADM.data.logs || []).forEach(l => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="white-space:nowrap;">${escapeHtml(l.Thoi_Gian)}</td>
-          <td><b>${escapeHtml(l.Ma_Ticket)}</b></td>
-          <td>${escapeHtml(l.Nguoi_Thuc_Hien)}</td>
-          <td>${escapeHtml(l.Hanh_Dong)}</td>
-          <td>${escapeHtml(l.Ghi_Chu)}</td>`;
-        tb.appendChild(tr);
-      });
-    }
-
-    document.getElementById('btnAddField').onclick = () => {
-      const tb = document.getElementById('formBody');
-      tb.appendChild(createFormRowTr({
-        ID_Truong: 'Truong_Moi_' + (tb.children.length + 1),
-        Ten_Hien_Thi: 'Trường mới',
-        ID_Tab: 'tab_hs',
-        Thu_Tu: tb.children.length + 1,
-        Loai_O_Nhap: 'Text',
-        Nguon_Du_Lieu: '',
-        Do_Rong: '0.5',
-        Bat_Buoc: 'NO',
-        Hien_Thi: 'YES',
-        Placeholder: ''
-      }));
-      tb.lastElementChild.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    document.getElementById('btnAddAccount').onclick = () => {
-      const tb = document.getElementById('accBody');
-      tb.appendChild(createAccountTr({ Tai_Khoan: '', Mat_Khau: '', Vai_Tro: 'Nhân viên', Trang_Thai: 'Hoạt động', Ghi_Chu: '' }));
-    };
-
-    document.getElementById('btnSaveConfig').onclick = async () => {
-      const items = [];
-      document.querySelectorAll('[data-cfg-key]').forEach(el => {
-        items.push({ KEY: el.dataset.cfgKey, VALUE: el.value.trim() });
-      });
-      setLoading(true, 'Đang lưu cấu hình...');
-      try {
-        const res = await callBackend('adminSaveConfig', { configRows: items });
-        setLoading(false);
-        showToast(res.message, res.success ? 'success' : 'error');
-      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
-    };
-
-    document.getElementById('btnSaveForm').onclick = async () => {
-      const fields = [];
-      document.querySelectorAll('#formBody tr').forEach((tr, idx) => {
-        const id = tr.querySelector('.fb-id').value.trim();
-        if (!id) return;
-        fields.push({
-          ID_Truong: id,
-          Ten_Hien_Thi: tr.querySelector('.fb-name').value.trim(),
-          ID_Tab: tr.querySelector('.fb-tab').value,
-          Thu_Tu: Number(tr.querySelector('.fb-order').value) || (idx + 1),
-          Loai_O_Nhap: tr.querySelector('.fb-type').value,
-          Nguon_Du_Lieu: tr.querySelector('.fb-src').value.trim(),
-          Do_Rong: tr.querySelector('.fb-width').value,
-          Bat_Buoc: tr.querySelector('.fb-req').value,
-          Hien_Thi: tr.querySelector('.fb-show').value,
-          Placeholder: tr.querySelector('.fb-ph').value.trim()
-        });
-      });
-      setLoading(true, 'Đang lưu Form Builder & đồng bộ cột bảng Ho_So...');
-      try {
-        const res = await callBackend('adminSaveForm', { fields });
-        setLoading(false);
-        showToast(res.message, res.success ? 'success' : 'error', 5000);
-      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
-    };
-
-    document.getElementById('btnSaveAccounts').onclick = async () => {
-      const accounts = [];
-      document.querySelectorAll('#accBody tr').forEach(tr => {
-        const u = tr.querySelector('.ac-u').value.trim();
-        const p = tr.querySelector('.ac-p').value.trim();
-        if (!u || !p) return;
-        accounts.push({
-          Tai_Khoan: u,
-          Mat_Khau: p,
-          Vai_Tro: tr.querySelector('.ac-r').value,
-          Trang_Thai: tr.querySelector('.ac-s').value,
-          Ghi_Chu: tr.querySelector('.ac-n').value.trim()
-        });
-      });
-      setLoading(true, 'Đang lưu danh sách tài khoản...');
-      try {
-        const res = await callBackend('adminSaveAccounts', { accounts });
-        setLoading(false);
-        showToast(res.message, res.success ? 'success' : 'error');
-      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
-    };
-
-    document.getElementById('btnDashExcel').onclick = () => {
-      const recs = (ADM.data && ADM.data.records) || [];
-      if (!recs.length) return showToast('Chưa có hồ sơ để xuất.', 'warning');
-      const ws = XLSX.utils.json_to_sheet(recs);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Bao_Cao_Tuyen_Sinh');
-      XLSX.writeFile(wb, `Bao_Cao_Tuyen_Sinh_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      showToast('Đã tải xuống file Excel báo cáo!', 'success');
-    };
-
-    async function loadAdmin() {
-      setLoading(true, 'Đang tải dữ liệu quản trị...');
-      try {
-        const res = await callBackend('getAdminData');
-        setLoading(false);
-        if (!res.success) {
-          document.getElementById('admLoginBox').style.display = 'block';
-          document.getElementById('admMain').classList.remove('active');
-          document.getElementById('btnAdmLogout').style.display = 'none';
-          if (res.message) showToast(res.message, 'warning');
-          return;
-        }
-        ADM.data = res;
-        document.getElementById('admLoginBox').style.display = 'none';
-        document.getElementById('admMain').classList.add('active');
-        document.getElementById('btnAdmLogout').style.display = 'inline-flex';
-        document.getElementById('admSchool').textContent = (res.publicConfig.TEN_TRUONG || 'TIỂU HỌC NGÔI SAO') + ' — QUẢN TRỊ';
-        document.getElementById('admUser').textContent = `Đăng nhập: ${res.session.username} (${res.session.displayRole})`;
-        renderBrandLogo(document.getElementById('admLogo'), res.publicConfig.URL_LOGO);
-
-        const isAdmin = res.session.role === 'ADMIN';
-        document.querySelectorAll('.admin-only').forEach(el => {
-          el.style.display = isAdmin ? 'inline-block' : 'none';
-        });
-
-        renderDashboard();
-        if (isAdmin) {
-          renderConfigTable();
-          renderFormBuilder();
-          renderAccounts();
-        }
-        renderLogs();
-      } catch (err) {
-        setLoading(false);
-        showToast(err.message, 'error');
+      authCreds.roleCode = res.user.roleCode;
+      portalData = res;
+      setupRoleUI(res.user, res.config);
+      renderDashboard();
+      if (res.user.roleCode === 'ADMIN') {
+        initFormBuilderModule();
+        initExcelModule();
+        renderAccountsModule();
+        populateConfigForm();
       }
+      document.getElementById('appScreen').style.display = 'block';
+    } catch (err) {
+      setLoading(false);
+      showToast('Lỗi tải dữ liệu: ' + err.message, 'error');
     }
+  }
 
-    document.getElementById('admLoginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setLoading(true, 'Đang đăng nhập...');
-      try {
-        const res = await callBackend('login', {
-          username: document.getElementById('aUser').value.trim(),
-          password: document.getElementById('aPass').value.trim()
-        });
-        setLoading(false);
-        if (!res.success) return showToast(res.message, 'error');
-        localStorage.setItem('ns_staff_token', res.token);
-        loadAdmin();
-      } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  function refreshPortalData() { fetchPortalData(() => showToast('Đã cập nhật số liệu mới nhất!')); }
+
+  async function doLogout() {
+    try { await callBackend('logout', {}, authCreds); } catch (e) {}
+    localStorage.removeItem('ts_auth_session');
+    localStorage.removeItem('ts_staff');
+    redirectToLogin();
+  }
+
+  function setupRoleUI(user, config) {
+    document.getElementById('topUserName').innerText = '👤 ' + user.name;
+    document.getElementById('topUserRole').innerText = (user.roleCode === 'ADMIN') ? 'ADMIN' : 'CHỦ ĐẦU TƯ';
+    if (config.TEN_TRUONG) document.getElementById('topSchoolName').innerText = config.TEN_TRUONG;
+    if (config.URL_LOGO && config.URL_LOGO.trim() !== '') {
+      let logoBox = document.getElementById('topLogo');
+      let img = document.createElement('img');
+      img.src = config.URL_LOGO.trim();
+      img.onerror = function() { logoBox.textContent = '⭐'; };
+      logoBox.innerHTML = '';
+      logoBox.appendChild(img);
+    }
+    let isAdmin = (user.roleCode === 'ADMIN');
+    document.querySelectorAll('.admin-only').forEach(el => { el.style.display = isAdmin ? 'inline-flex' : 'none'; });
+    document.getElementById('sidebarNav').style.display = isAdmin ? 'block' : 'none';
+    document.querySelector('.shell').style.gridTemplateColumns = isAdmin ? '' : '1fr';
+  }
+
+  function switchPane(paneId) {
+    if (authCreds.roleCode !== 'ADMIN' && paneId !== 'dashboard') return;
+    ['dashboard', 'formbuilder', 'excel', 'accounts', 'config'].forEach(id => {
+      let nav = document.getElementById('nav_' + id);
+      let pane = document.getElementById('pane_' + id);
+      if (nav) nav.classList.toggle('active', id === paneId);
+      if (pane) pane.classList.toggle('active', id === paneId);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ==========================================
+  // 1. DASHBOARD & 4 BIỂU ĐỒ (ĐÃ SỬA ĐÚNG TÊN CỘT ĐỊA LÝ XÃ/PHƯỜNG)
+  // ==========================================
+  function extractDateKey(timeStr) {
+    if (!timeStr) return 'Không rõ';
+    let m = timeStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return `${m[1].padStart(2, '0')}/${m[2].padStart(2, '0')}/${m[3]}`;
+    let iso = timeStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    return timeStr.split(' ')[0];
+  }
+
+  function renderDashboard() {
+    const records = portalData.records || [];
+    let total = records.length, wait = 0, approved = 0, rejected = 0;
+    let gradeMap = {}, dateMap = {}, geoMap = {};
+
+    records.forEach(r => {
+      let stt = (r.Trang_Thai || 'Chờ duyệt').trim();
+      if (stt === 'Đã duyệt' || stt === 'Đã hoàn tất') approved++;
+      else if (stt === 'Đã loại' || stt.includes('Từ chối') || stt === 'Đã hủy') rejected++;
+      else wait++;
+
+      let grd = (r.Khoi_Lop || r.khoi_lop || 'Chưa chọn khối').toString().trim();
+      if (!gradeMap[grd]) gradeMap[grd] = { total: 0, nam: 0, nu: 0, wait: 0, approved: 0, rejected: 0 };
+      gradeMap[grd].total++;
+
+      let gt = (r.Gioi_Tinh || r.gioi_tinh || '').toString().trim().toLowerCase();
+      if (gt === 'nam') gradeMap[grd].nam++;
+      else if (gt === 'nữ' || gt === 'nu') gradeMap[grd].nu++;
+
+      if (stt === 'Đã duyệt' || stt === 'Đã hoàn tất') gradeMap[grd].approved++;
+      else if (stt === 'Đã loại' || stt.includes('Từ chối')) gradeMap[grd].rejected++;
+      else gradeMap[grd].wait++;
+
+      let dKey = extractDateKey(r.Thoi_Gian);
+      dateMap[dKey] = (dateMap[dKey] || 0) + 1;
+
+      // Vá lỗi lệch tên cột địa lý: ưu tiên đúng tên cột thực tế trong Ho_So
+      let ward = (r.Cho_O_Xa || r.Thuong_Tru_Xa || r.Que_Quan_Xa || r.Noi_Sinh_Xa || r.Xa_Hien_Nay || r.Xa_Thuong_Tru || '').toString().trim();
+      if (ward && stt !== 'Đã loại') geoMap[ward] = (geoMap[ward] || 0) + 1;
     });
 
-    document.getElementById('btnAdmLogout').onclick = async () => {
-      try { await callBackend('logout'); } catch (e) {}
-      localStorage.removeItem('ns_staff_token');
-      document.getElementById('admLoginBox').style.display = 'block';
-      document.getElementById('admMain').classList.remove('active');
-      document.getElementById('btnAdmLogout').style.display = 'none';
-    };
+    document.getElementById('kpiTotal').innerText = total;
+    document.getElementById('kpiWait').innerText = wait;
+    document.getElementById('kpiApproved').innerText = approved;
+    document.getElementById('kpiRejected').innerText = rejected;
+    document.getElementById('kpiApprovedSub').innerText = `Tỷ lệ hoàn tất: ${total > 0 ? Math.round((approved / total) * 100) : 0}%`;
 
-    if (localStorage.getItem('ns_staff_token')) {
-      loadAdmin();
+    let gradeKeys = Object.keys(gradeMap).sort();
+    let tbodyHtml = gradeKeys.map(g => {
+      let item = gradeMap[g];
+      let gRate = item.total > 0 ? Math.round((item.approved / item.total) * 100) : 0;
+      return `<tr>
+        <td><b>${escapeHtml(g)}</b></td><td><b>${item.total}</b></td>
+        <td>${item.nam}</td><td>${item.nu}</td>
+        <td><span class="badge bg-cho">${item.wait}</span></td>
+        <td><span class="badge bg-duyet">${item.approved}</span></td>
+        <td><span class="badge bg-loai">${item.rejected}</span></td>
+        <td><b>${gRate}%</b></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Chưa có dữ liệu hồ sơ</td></tr>';
+    document.getElementById('gradeSummaryBody').innerHTML = tbodyHtml;
+
+    if (chartInstances.grade) chartInstances.grade.destroy();
+    chartInstances.grade = new Chart(document.getElementById('chartGrade'), {
+      type: 'bar',
+      data: {
+        labels: gradeKeys,
+        datasets: [
+          { label: 'Đã duyệt', data: gradeKeys.map(k => gradeMap[k].approved), backgroundColor: '#4e972e', borderRadius: 6 },
+          { label: 'Chờ xử lý', data: gradeKeys.map(k => gradeMap[k].wait), backgroundColor: '#f4c43f', borderRadius: 6 },
+          { label: 'Đã loại', data: gradeKeys.map(k => gradeMap[k].rejected), backgroundColor: '#e74c3c', borderRadius: 6 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    if (chartInstances.status) chartInstances.status.destroy();
+    chartInstances.status = new Chart(document.getElementById('chartStatus'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Chờ xử lý', 'Đã duyệt', 'Đã loại'],
+        datasets: [{ data: [wait, approved, rejected], backgroundColor: ['#f4c43f', '#4e972e', '#e74c3c'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    let geoSorted = Object.entries(geoMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    if (chartInstances.geo) chartInstances.geo.destroy();
+    chartInstances.geo = new Chart(document.getElementById('chartGeo'), {
+      type: 'bar',
+      data: {
+        labels: geoSorted.length ? geoSorted.map(x => x[0]) : ['Chưa có dữ liệu'],
+        datasets: [{ label: 'Số học sinh', data: geoSorted.length ? geoSorted.map(x => x[1]) : [0], backgroundColor: '#1756a9', borderRadius: 6 }]
+      },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    let dateKeys = Object.keys(dateMap).reverse().slice(-14);
+    if (chartInstances.timeline) chartInstances.timeline.destroy();
+    chartInstances.timeline = new Chart(document.getElementById('chartTimeline'), {
+      type: 'line',
+      data: {
+        labels: dateKeys,
+        datasets: [{ label: 'Hồ sơ nộp mới', data: dateKeys.map(d => dateMap[d]), borderColor: '#4e972e', backgroundColor: 'rgba(78,151,46,0.15)', fill: true, tension: 0.3, pointRadius: 4 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  }
+
+  // ==========================================
+  // 2. FORM BUILDER (CÓ THÊM TRƯỜNG MỚI & XÓA TRƯỜNG)
+  // ==========================================
+  function initFormBuilderModule() {
+    let tabs = portalData.formBuilderTabs || [];
+    let tabBody = '';
+    let filterHtml = '<option value="">-- Tất cả các Tab --</option>';
+    tabs.forEach((t, idx) => {
+      filterHtml += `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)} (${escapeHtml(t.id)})</option>`;
+      tabBody += `<tr>
+        <td><input type="number" class="fb-inp" style="width:54px;" value="${escapeHtml(t.order)}" onchange="portalData.formBuilderTabs[${idx}].order=parseInt(this.value)||1"></td>
+        <td><b>${escapeHtml(t.id)}</b></td>
+        <td><input type="text" class="fb-inp" value="${escapeHtml(t.name)}" oninput="portalData.formBuilderTabs[${idx}].name=this.value"></td>
+        <td>
+          <select class="fb-sel" style="width:100%;" onchange="portalData.formBuilderTabs[${idx}].visible=this.value">
+            <option value="YES" ${t.visible === 'YES' ? 'selected' : ''}>🟢 YES (Phụ huynh + Nhân viên)</option>
+            <option value="STAFF" ${(t.visible === 'STAFF' || t.visible === 'NV') ? 'selected' : ''}>📋 STAFF (Chỉ Nhân viên)</option>
+            <option value="NO" ${t.visible === 'NO' ? 'selected' : ''}>🔴 NO (Tạm ẩn)</option>
+          </select>
+        </td>
+      </tr>`;
+    });
+    document.getElementById('fbTabsBody').innerHTML = tabBody;
+    document.getElementById('fbFilterTab').innerHTML = filterHtml;
+    renderFormBuilderFields();
+  }
+
+  function addNewFormBuilderField() {
+    let filterTab = document.getElementById('fbFilterTab').value;
+    let defaultTab = filterTab || ((portalData.formBuilderTabs && portalData.formBuilderTabs[0]) ? portalData.formBuilderTabs[0].id : 'tab_hs');
+    let nextOrder = (portalData.formBuilderFields || []).length + 1;
+    portalData.formBuilderFields.push({
+      id: 'Truong_Moi_' + nextOrder,
+      name: 'Trường thông tin mới',
+      tab: defaultTab,
+      order: nextOrder,
+      type: 'Text',
+      source: '',
+      width: '0.5',
+      required: 'NO',
+      visible: 'YES',
+      placeholder: ''
+    });
+    renderFormBuilderFields();
+    let tb = document.getElementById('fbFieldsBody');
+    if (tb.lastElementChild) tb.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('➕ Đã thêm 1 trường mới ở cuối bảng. Nhớ bấm "Lưu toàn bộ Biểu mẫu"!', 'success');
+  }
+
+  function removeFormBuilderField(idx) {
+    let f = portalData.formBuilderFields[idx];
+    if (!f) return;
+    if (!confirm(`Xóa trường "${f.name}" (${f.id}) khỏi biểu mẫu?\n(Dữ liệu cũ trong bảng Ho_So vẫn được giữ nguyên an toàn)`)) return;
+    portalData.formBuilderFields.splice(idx, 1);
+    renderFormBuilderFields();
+  }
+
+  function renderFormBuilderFields() {
+    let filterTab = document.getElementById('fbFilterTab').value;
+    let tabs = portalData.formBuilderTabs || [];
+    let fields = portalData.formBuilderFields || [];
+    let types = ['Text', 'Date', 'Number', 'Select_DM', 'Select_Tinh', 'Select_Xa', 'Checkbox'];
+    let html = '';
+
+    fields.forEach((f, idx) => {
+      if (filterTab && f.tab !== filterTab) return;
+      let tabOpts = tabs.map(t => `<option value="${escapeHtml(t.id)}" ${t.id === f.tab ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+      let typeOpts = types.map(tp => `<option value="${tp}" ${tp === f.type ? 'selected' : ''}>${tp}</option>`).join('');
+      let isFullWidth = (f.width === '1' || f.width === '100' || f.width === '100%');
+
+      html += `<tr>
+        <td><input type="number" class="fb-inp" style="width:50px;" value="${escapeHtml(f.order)}" onchange="portalData.formBuilderFields[${idx}].order=parseInt(this.value)||1"></td>
+        <td><input type="text" class="fb-inp" value="${escapeHtml(f.id)}" oninput="portalData.formBuilderFields[${idx}].id=this.value.replace(/[^A-Za-z0-9_]/g,'')"></td>
+        <td><input type="text" class="fb-inp" value="${escapeHtml(f.name)}" oninput="portalData.formBuilderFields[${idx}].name=this.value"></td>
+        <td><select class="fb-sel" onchange="portalData.formBuilderFields[${idx}].tab=this.value">${tabOpts}</select></td>
+        <td><select class="fb-sel" onchange="portalData.formBuilderFields[${idx}].type=this.value">${typeOpts}</select></td>
+        <td><input type="text" class="fb-inp" value="${escapeHtml(f.source || '')}" placeholder="DM_..." oninput="portalData.formBuilderFields[${idx}].source=this.value"></td>
+        <td>
+          <select class="fb-sel" onchange="portalData.formBuilderFields[${idx}].width=this.value">
+            <option value="0.5" ${!isFullWidth ? 'selected' : ''}>0.5</option>
+            <option value="1" ${isFullWidth ? 'selected' : ''}>1 (Full)</option>
+          </select>
+        </td>
+        <td>
+          <select class="fb-sel" onchange="portalData.formBuilderFields[${idx}].required=this.value">
+            <option value="YES" ${f.required === 'YES' ? 'selected' : ''}>⭐ Có</option>
+            <option value="NO" ${f.required !== 'YES' ? 'selected' : ''}>Không</option>
+          </select>
+        </td>
+        <td>
+          <select class="fb-sel" onchange="portalData.formBuilderFields[${idx}].visible=this.value">
+            <option value="YES" ${f.visible === 'YES' ? 'selected' : ''}>🟢 Hiện</option>
+            <option value="STAFF" ${(f.visible === 'STAFF' || f.visible === 'NV') ? 'selected' : ''}>📋 NV</option>
+            <option value="NO" ${f.visible === 'NO' ? 'selected' : ''}>🔴 Ẩn</option>
+          </select>
+        </td>
+        <td><input type="text" class="fb-inp" value="${escapeHtml(f.placeholder || '')}" oninput="portalData.formBuilderFields[${idx}].placeholder=this.value"></td>
+        <td><button type="button" class="btn-icon del" onclick="removeFormBuilderField(${idx})" title="Xóa trường">🗑️</button></td>
+      </tr>`;
+    });
+    document.getElementById('fbFieldsBody').innerHTML = html;
+  }
+
+  async function saveFormBuilderChanges() {
+    setLoading(true, 'ĐANG LƯU BIỂU MẪU & ĐỒNG BỘ CỘT Ho_So...');
+    try {
+      const res = await callBackend('adminSaveFormBuilder', {
+        updatedFields: portalData.formBuilderFields,
+        updatedTabs: portalData.formBuilderTabs
+      }, authCreds);
+      setLoading(false);
+      if (res && res.success) {
+        let extra = (res.addedCols && res.addedCols.length) ? (' (Đã tạo cột mới: ' + res.addedCols.join(', ') + ')') : '';
+        showToast('✅ Đã lưu toàn bộ cấu hình Biểu mẫu!' + extra);
+        fetchPortalData();
+      } else showToast('Lỗi: ' + ((res && res.error) || 'Không lưu được'), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  // ==========================================
+  // 3. THIẾT KẾ MẪU & XUẤT EXCEL TÙY CHỈNH
+  // ==========================================
+  function initExcelModule() {
+    let grades = [...new Set(portalData.records.map(r => r.Khoi_Lop || r.khoi_lop).filter(Boolean))];
+    document.getElementById('expFilterGrade').innerHTML = '<option value="">-- Tất cả --</option>' + grades.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+
+    let poolEl = document.getElementById('chipPool');
+    poolEl.innerHTML = '';
+    const mkChip = (id, label, special) => {
+      let b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip-btn' + (special ? ' special' : '');
+      b.textContent = (special ? '➕ ' : '+ ') + label;
+      b.onclick = () => { builderColumns.push({ source: id, title: label }); renderBuilderColumns(); };
+      poolEl.appendChild(b);
+    };
+    mkChip('__STT__', 'STT', true);
+    mkChip('__BLANK__', 'Ghi chú / Ký tên', true);
+    (portalData.availableColumns || []).forEach(c => mkChip(c.id, c.label, false));
+
+    refreshTemplateDropdowns();
+    if (builderColumns.length === 0) resetTemplateBuilder();
+  }
+
+  function refreshTemplateDropdowns() {
+    let editSel = document.getElementById('selSavedTemplateEdit');
+    let expSel = document.getElementById('selExportTemplate');
+    let editHtml = '<option value="">-- Tạo mẫu xuất mới --</option>';
+    let expHtml = '<option value="__DEFAULT__">🌟 Mẫu Mặc định (Toàn bộ các cột hệ thống)</option>';
+    (portalData.excelTemplates || []).forEach(tpl => {
+      let colLen = Array.isArray(tpl.columns) ? tpl.columns.length : 0;
+      editHtml += `<option value="${escapeHtml(tpl.id)}" ${tpl.id === currentEditingTemplateId ? 'selected' : ''}>📄 ${escapeHtml(tpl.name)} (${colLen} cột)</option>`;
+      expHtml += `<option value="${escapeHtml(tpl.id)}">📄 ${escapeHtml(tpl.name)} (${colLen} cột)</option>`;
+    });
+    editSel.innerHTML = editHtml;
+    expSel.innerHTML = expHtml;
+    if (currentEditingTemplateId) expSel.value = currentEditingTemplateId;
+    renderExportPreview();
+  }
+
+  function resetTemplateBuilder() {
+    currentEditingTemplateId = '';
+    document.getElementById('selSavedTemplateEdit').value = '';
+    document.getElementById('inpTemplateName').value = '';
+    document.getElementById('btnDeleteTemplate').style.display = 'none';
+    builderColumns = [
+      { source: '__STT__', title: 'STT' },
+      { source: 'Ma_Ticket', title: 'Mã Hồ Sơ' },
+      { source: 'Ho_Ten_HS', title: 'Họ và tên học sinh' },
+      { source: 'Ngay_Sinh', title: 'Ngày sinh' },
+      { source: 'Gioi_Tinh', title: 'Giới tính' },
+      { source: 'Khoi_Lop', title: 'Khối lớp' },
+      { source: '__BLANK__', title: 'Ký xác nhận' }
+    ];
+    renderBuilderColumns();
+  }
+
+  function loadTemplateToBuilder(tplId) {
+    if (!tplId) return resetTemplateBuilder();
+    let tpl = (portalData.excelTemplates || []).find(t => t.id === tplId);
+    if (!tpl) return;
+    currentEditingTemplateId = tpl.id;
+    document.getElementById('inpTemplateName').value = tpl.name;
+    document.getElementById('btnDeleteTemplate').style.display = 'inline-flex';
+    builderColumns = JSON.parse(JSON.stringify(tpl.columns || []));
+    renderBuilderColumns();
+    document.getElementById('selExportTemplate').value = tpl.id;
+    renderExportPreview();
+  }
+
+  function moveBuilderCol(idx, dir) {
+    let target = idx + dir;
+    if (target < 0 || target >= builderColumns.length) return;
+    [builderColumns[idx], builderColumns[target]] = [builderColumns[target], builderColumns[idx]];
+    renderBuilderColumns();
+  }
+
+  function renderBuilderColumns() {
+    let box = document.getElementById('colBuilderList');
+    if (!builderColumns.length) {
+      box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-weight:700;">Chưa có cột nào. Hãy bấm vào các nút phía trên!</div>';
+      return;
     }
-  </script>
+    box.innerHTML = builderColumns.map((col, i) => {
+      let src = col.source === '__STT__' ? 'Số thứ tự tự động' : (col.source === '__BLANK__' ? 'Cột trống' : `Nguồn: ${escapeHtml(col.source)}`);
+      return `<div class="col-item">
+        <div class="col-idx">${i + 1}</div>
+        <div class="col-info">
+          <span class="col-source-tag">${src}</span>
+          <input type="text" class="col-title-inp" value="${escapeHtml(col.title)}" oninput="builderColumns[${i}].title=this.value">
+        </div>
+        <div class="col-actions">
+          <button type="button" class="btn-icon" onclick="moveBuilderCol(${i}, -1)">↑</button>
+          <button type="button" class="btn-icon" onclick="moveBuilderCol(${i}, 1)">↓</button>
+          <button type="button" class="btn-icon del" onclick="builderColumns.splice(${i},1);renderBuilderColumns();">✖</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function saveCurrentTemplate() {
+    let name = document.getElementById('inpTemplateName').value.trim();
+    if (!name) return showToast('Vui lòng đặt tên cho Mẫu xuất Excel!', 'error');
+    if (!builderColumns.length) return showToast('Mẫu Excel phải có ít nhất 1 cột!', 'error');
+    let list = portalData.excelTemplates || [];
+    if (currentEditingTemplateId) {
+      let idx = list.findIndex(t => t.id === currentEditingTemplateId);
+      if (idx !== -1) { list[idx].name = name; list[idx].columns = JSON.parse(JSON.stringify(builderColumns)); }
+    } else {
+      currentEditingTemplateId = 'TPL_' + Date.now();
+      list.push({ id: currentEditingTemplateId, name: name, columns: JSON.parse(JSON.stringify(builderColumns)) });
+    }
+    setLoading(true, 'ĐANG LƯU MẪU EXCEL...');
+    try {
+      const res = await callBackend('adminSaveExcelTemplates', { templatesArray: list }, authCreds);
+      setLoading(false);
+      if (res && res.success) {
+        showToast('💾 Đã lưu Mẫu xuất Excel thành công!');
+        document.getElementById('btnDeleteTemplate').style.display = 'inline-flex';
+        refreshTemplateDropdowns();
+      } else showToast('Lỗi: ' + ((res && res.error) || ''), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  async function deleteCurrentTemplate() {
+    if (!currentEditingTemplateId) return;
+    let list = (portalData.excelTemplates || []).filter(t => t.id !== currentEditingTemplateId);
+    portalData.excelTemplates = list;
+    setLoading(true, 'ĐANG XÓA MẪU...');
+    try {
+      const res = await callBackend('adminSaveExcelTemplates', { templatesArray: list }, authCreds);
+      setLoading(false);
+      if (res && res.success) { showToast('🗑️ Đã xóa mẫu Excel!'); resetTemplateBuilder(); refreshTemplateDropdowns(); }
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  function getActiveExportColumns() {
+    let tplId = document.getElementById('selExportTemplate').value;
+    if (tplId === '__DEFAULT__' || !tplId) {
+      return [{ source: '__STT__', title: 'STT' }, ...(portalData.availableColumns || []).map(c => ({ source: c.id, title: c.label }))];
+    }
+    let tpl = (portalData.excelTemplates || []).find(t => t.id === tplId);
+    return tpl ? tpl.columns : [];
+  }
+
+  function getFilteredRecordsForExport() {
+    let stt = document.getElementById('expFilterStatus').value;
+    let grd = document.getElementById('expFilterGrade').value;
+    let kw = document.getElementById('expFilterKeyword').value.toLowerCase().trim();
+    return (portalData.records || []).filter(r => (!stt || r.Trang_Thai === stt) && (!grd || (r.Khoi_Lop || r.khoi_lop) === grd) && (!kw || Object.values(r).join(' ').toLowerCase().includes(kw)));
+  }
+
+  function renderExportPreview() {
+    let cols = getActiveExportColumns();
+    let rows = getFilteredRecordsForExport();
+    document.getElementById('expCountLabel').innerText = `Khớp: ${rows.length} hồ sơ`;
+    document.getElementById('expPreviewHead').innerHTML = '<tr>' + cols.map(c => `<th>${escapeHtml(c.title)}</th>`).join('') + '</tr>';
+    let pre = rows.slice(0, 5);
+    if (!pre.length) {
+      document.getElementById('expPreviewBody').innerHTML = `<tr><td colspan="${cols.length || 1}" style="text-align:center;color:var(--muted);">Không có hồ sơ khớp bộ lọc</td></tr>`;
+      return;
+    }
+    document.getElementById('expPreviewBody').innerHTML = pre.map((r, idx) => '<tr>' + cols.map(c => {
+      let val = c.source === '__STT__' ? (idx + 1) : (c.source === '__BLANK__' ? '' : (r[c.source] || ''));
+      return `<td>${escapeHtml(val)}</td>`;
+    }).join('') + '</tr>').join('');
+  }
+
+  function downloadCustomExcel() {
+    let cols = getActiveExportColumns();
+    let rows = getFilteredRecordsForExport();
+    if (!rows.length) return showToast('Không có dữ liệu để xuất!', 'error');
+    let aoa = [cols.map(c => c.title || '')];
+    rows.forEach((r, idx) => {
+      aoa.push(cols.map(c => {
+        if (c.source === '__STT__') return String(idx + 1);
+        if (c.source === '__BLANK__') return '';
+        let raw = r[c.source];
+        if (raw === undefined || raw === null) return '';
+        let s = String(raw);
+        return s.startsWith("'") ? s.substring(1) : s;
+      }));
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let ref = XLSX.utils.encode_cell({ r: R, c: C });
+        if (ws[ref]) { ws[ref].t = 's'; ws[ref].z = '@'; }
+      }
+    }
+    ws['!cols'] = cols.map((c, idx) => {
+      let mx = (c.title || '').length;
+      for (let i = 1; i < aoa.length; i++) mx = Math.max(mx, (aoa[i][idx] || '').length);
+      return { wch: Math.min(Math.max(mx + 4, 10), 42) };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh_Sach_Tuyen_Sinh');
+    let sel = document.getElementById('selExportTemplate');
+    let nm = sel.options[sel.selectedIndex].text.replace(/[^a-zA-Z0-9_\u00C0-\u1EF9\s-]/g, '').trim().replace(/\s+/g, '_');
+    XLSX.writeFile(wb, `${nm || 'Danh_Sach_Tuyen_Sinh'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    showToast('📥 Đã tải xuống file Excel thành công!');
+  }
+
+  // ==========================================
+  // 4. QUẢN LÝ NHÂN SỰ (CHE MẬT KHẨU •••••• + NÚT CON MẮT 👁️)
+  // ==========================================
+  function toggleInputPwd(inputId, btn) {
+    let inp = document.getElementById(inputId);
+    if (!inp) return;
+    inp.type = (inp.type === 'password') ? 'text' : 'password';
+    btn.innerText = (inp.type === 'password') ? '👁️' : '🙈';
+  }
+
+  function toggleRowPwd(idx, btn) {
+    let span = document.getElementById('acc_pwd_mask_' + idx);
+    let acc = (portalData.accounts || [])[idx];
+    if (!span || !acc) return;
+    let shown = span.getAttribute('data-shown') === '1';
+    if (shown) {
+      span.innerText = '••••••••';
+      span.setAttribute('data-shown', '0');
+      btn.innerText = '👁️';
+    } else {
+      span.innerText = acc.password;
+      span.setAttribute('data-shown', '1');
+      btn.innerText = '🙈';
+    }
+  }
+
+  function renderAccountsModule() {
+    let list = portalData.accounts || [];
+    let tbody = document.getElementById('accountsTableBody');
+    tbody.innerHTML = '';
+    list.forEach((acc, idx) => {
+      let roleBadge = 'bg-role-nv';
+      if (acc.role.toLowerCase().includes('admin') || acc.role.toLowerCase().includes('quản trị')) roleBadge = 'bg-role-admin';
+      else if (acc.role.toLowerCase().includes('chủ đầu tư')) roleBadge = 'bg-role-cdt';
+      let sttBadge = acc.status === 'Hoạt động' ? 'bg-duyet' : 'bg-loai';
+      let nextStatus = acc.status === 'Hoạt động' ? 'Khóa' : 'Hoạt động';
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${escapeHtml(acc.username)}</b></td>
+        <td>
+          <div class="pwd-wrap">
+            <span id="acc_pwd_mask_${idx}" data-shown="0" style="font-family:monospace;font-weight:700;min-width:74px;">••••••••</span>
+            <button type="button" class="pwd-eye-btn" onclick="toggleRowPwd(${idx}, this)" title="Hiện/Ẩn mật khẩu">👁️</button>
+          </div>
+        </td>
+        <td><span class="badge ${roleBadge}">${escapeHtml(acc.role)}</span></td>
+        <td><span class="badge ${sttBadge}">${escapeHtml(acc.status)}</span></td>
+        <td>
+          <div style="display:flex;gap:5px;">
+            <button class="btn-top" style="padding:5px 8px;font-size:11.5px;" onclick="editAccountByIndex(${idx})">✏️ Sửa</button>
+            <button class="btn-top" style="padding:5px 8px;font-size:11.5px;" onclick="quickToggleAccountByIndex(${idx}, '${nextStatus}')">${acc.status === 'Hoạt động' ? '🔒 Khóa' : '🔓 Mở'}</button>
+            <button class="btn-top" style="padding:5px 8px;font-size:11.5px;color:var(--danger);" onclick="deleteAccountByIndex(${idx})">🗑️</button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function resetAccountForm() {
+    document.getElementById('accFormTitle').innerText = '➕ Cấp / Cập nhật Tài khoản';
+    document.getElementById('accUsername').value = '';
+    document.getElementById('accPassword').value = '';
+    document.getElementById('accPassword').type = 'password';
+    document.getElementById('accRole').value = 'Nhân viên';
+    document.getElementById('accStatus').value = 'Hoạt động';
+  }
+
+  function editAccountByIndex(idx) {
+    let acc = (portalData.accounts || [])[idx];
+    if (!acc) return;
+    document.getElementById('accFormTitle').innerText = '✏️ Sửa tài khoản: ' + acc.username;
+    document.getElementById('accUsername').value = acc.username;
+    document.getElementById('accPassword').value = acc.password;
+    document.getElementById('accRole').value = acc.role;
+    document.getElementById('accStatus').value = acc.status;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function saveAccount() {
+    let accObj = {
+      username: document.getElementById('accUsername').value.trim(),
+      password: document.getElementById('accPassword').value.trim(),
+      role: document.getElementById('accRole').value,
+      status: document.getElementById('accStatus').value
+    };
+    if (!accObj.username || !accObj.password) return showToast('Vui lòng điền Tên đăng nhập và Mật khẩu!', 'error');
+    setLoading(true, 'ĐANG LƯU TÀI KHOẢN...');
+    try {
+      const res = await callBackend('adminSaveAccount', { accObj }, authCreds);
+      setLoading(false);
+      if (res && res.success) { showToast('✅ Đã lưu thông tin tài khoản!'); resetAccountForm(); fetchPortalData(); }
+      else showToast('Lỗi: ' + ((res && res.error) || ''), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  async function quickToggleAccountByIndex(idx, newStatus) {
+    let acc = (portalData.accounts || [])[idx];
+    if (!acc) return;
+    setLoading(true, 'ĐANG CẬP NHẬT TRẠNG THÁI...');
+    try {
+      const res = await callBackend('adminSaveAccount', { accObj: { username: acc.username, password: acc.password, role: acc.role, status: newStatus } }, authCreds);
+      setLoading(false);
+      if (res && res.success) { showToast(`Đã chuyển "${acc.username}" sang: ${newStatus}`); fetchPortalData(); }
+      else showToast('Lỗi: ' + ((res && res.error) || ''), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  async function deleteAccountByIndex(idx) {
+    let acc = (portalData.accounts || [])[idx];
+    if (!acc || !confirm(`Xóa tài khoản "${acc.username}"?`)) return;
+    setLoading(true, 'ĐANG XÓA TÀI KHOẢN...');
+    try {
+      const res = await callBackend('adminDeleteAccount', { targetUsername: acc.username }, authCreds);
+      setLoading(false);
+      if (res && res.success) { showToast(`🗑️ Đã xóa tài khoản ${acc.username}!`); fetchPortalData(); }
+      else showToast('Lỗi: ' + ((res && res.error) || ''), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+
+  // ==========================================
+  // 5. CẤU HÌNH HỆ THỐNG
+  // ==========================================
+  function populateConfigForm() {
+    let c = portalData.config || {};
+    document.getElementById('cfgTrangThai').value = (c.TRANG_THAI === 'ĐÓNG') ? 'ĐÓNG' : 'MỞ';
+    document.getElementById('cfgThoiGianMo').value = c.THOI_GIAN_MO || '';
+    document.getElementById('cfgThoiGianDong').value = c.THOI_GIAN_DONG || '';
+    document.getElementById('cfgThongBaoDong').value = c.THONG_BAO_DONG || '';
+    document.getElementById('cfgMaNgoaiLe').value = c.MA_NGOAI_LE || 'NS2026';
+    document.getElementById('cfgSoHoSoToiDa').value = c.SO_HO_SO_TOI_DA || '3';
+    document.getElementById('cfgTenTruong').value = c.TEN_TRUONG || '';
+    document.getElementById('cfgNamHoc').value = c.NAM_HOC || '';
+    document.getElementById('cfgHotline').value = c.HOTLINE || '';
+    document.getElementById('cfgUrlLogo').value = c.URL_LOGO || '';
+    document.getElementById('cfgUrlAnh').value = c.URL_ANH_TUYENSINH || '';
+    document.getElementById('cfgTemplateIn').value = c.ID_TEMPLATE_IN || '';
+  }
+
+  async function saveSystemConfig() {
+    let cfgObj = {
+      TRANG_THAI: document.getElementById('cfgTrangThai').value,
+      THOI_GIAN_MO: document.getElementById('cfgThoiGianMo').value.trim(),
+      THOI_GIAN_DONG: document.getElementById('cfgThoiGianDong').value.trim(),
+      THONG_BAO_DONG: document.getElementById('cfgThongBaoDong').value.trim(),
+      MA_NGOAI_LE: document.getElementById('cfgMaNgoaiLe').value.trim() || 'NS2026',
+      SO_HO_SO_TOI_DA: document.getElementById('cfgSoHoSoToiDa').value.trim() || '3',
+      TEN_TRUONG: document.getElementById('cfgTenTruong').value.trim(),
+      NAM_HOC: document.getElementById('cfgNamHoc').value.trim(),
+      HOTLINE: document.getElementById('cfgHotline').value.trim(),
+      URL_LOGO: document.getElementById('cfgUrlLogo').value.trim(),
+      URL_ANH_TUYENSINH: document.getElementById('cfgUrlAnh').value.trim(),
+      ID_TEMPLATE_IN: document.getElementById('cfgTemplateIn').value.trim()
+    };
+    setLoading(true, 'ĐANG LƯU CẤU HÌNH...');
+    try {
+      const res = await callBackend('adminSaveConfig', { configObj }, authCreds);
+      setLoading(false);
+      if (res && res.success) { showToast('⚙️ Đã lưu cấu hình hệ thống thành công!'); fetchPortalData(); }
+      else showToast('Lỗi: ' + ((res && res.error) || ''), 'error');
+    } catch (err) { setLoading(false); showToast(err.message, 'error'); }
+  }
+</script>
 </body>
 </html>

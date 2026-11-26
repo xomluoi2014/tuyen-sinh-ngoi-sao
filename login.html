@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#4e972e">
+<title>Đăng Nhập Nội Bộ | Tiểu học Ngôi Sao</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234e972e'/%3E%3Cpath d='M32 10l6.6 13.4 14.8 2.1-10.7 10.4 2.5 14.7L32 43.7 18.8 50.6l2.5-14.7L10.6 25.5l14.8-2.1z' fill='%23f4c43f'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cổng Tuyển Sinh Trực Tuyến | Trường Tiểu học Ngôi Sao">
+<meta property="og:description" content="Hệ thống đăng ký tuyển sinh thông minh: Phụ huynh nộp hồ sơ nhận Thẻ QR trong 2 phút, đối chiếu trực tiếp 2 màn hình, báo cáo thời gian thực.">
+<meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhoX1VX6K3DpEXCZVE5DkPZkdOMPY04c129_HbQoFnhWPg6cz1Jx00hI0&s=10">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+:root {
+  --primary: #4e972e;
+  --primary-dark: #3b7621;
+  --primary-light: #eaf6e3;
+  --accent: #f4c43f;
+  --bg: #f4fbea;
+  --ink: #182b45;
+  --muted: #526550;
+  --line: #dcebc5;
+  --danger: #e74c3c;
+  --font: 'Quicksand', sans-serif;
+  --font-num: 'Inter', sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 10% 10%, #e2f6b9 0 15%, transparent 35%), radial-gradient(circle at 90% 85%, #e9f7cf 0 15%, transparent 35%);
+  color: var(--ink);
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+button, input { font: inherit; outline: none; }
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 28px;
+  padding: 38px 30px;
+  box-shadow: 0 20px 50px rgba(78,151,46,0.12);
+  text-align: center;
+}
+.logo-box {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  font-weight: 900;
+  margin: 0 auto 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(78,151,46,0.12);
+}
+.logo-box img { width: 100%; height: 100%; object-fit: contain; padding: 4px; background: #fff; }
+.school-title { font-size: 13px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+h1 { margin: 0 0 8px; font-size: 24px; font-weight: 800; color: var(--ink); }
+.desc { margin: 0 0 24px; font-size: 13.5px; color: var(--muted); font-weight: 600; line-height: 1.5; }
+
+.field-group { text-align: left; margin-bottom: 16px; }
+.field-group label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 6px; color: var(--ink); }
+.inp {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #c8dcae;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-num);
+  background: #fbfdf8;
+  color: var(--ink);
+  transition: 0.2s;
+}
+.inp:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(78,151,46,0.15); }
+
+.btn-submit {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(78,151,46,0.25);
+  transition: 0.2s;
+  margin-top: 6px;
+}
+.btn-submit:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+.error-msg {
+  display: none;
+  background: #fce8e8;
+  color: var(--danger);
+  border: 1px solid #f5c6cb;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  font-family: var(--font-num);
+}
+
+#roleResultBox { display: none; }
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 99px;
+  font-size: 13.5px;
+  font-weight: 800;
+  margin: 10px 0 18px;
+  font-family: var(--font-num);
+}
+.role-admin { background: #e8f0fe; color: #1756a9; }
+.role-cdt { background: #fef5d1; color: #946200; }
+.role-nv { background: #eaf6e3; color: #2d6b12; }
+
+.portal-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 15px 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 15px;
+  margin-bottom: 10px;
+  transition: 0.2s;
+}
+.portal-link.primary { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(78,151,46,0.25); }
+.portal-link.secondary { background: #f0f6ff; color: #1756a9; border: 1.5px solid #c2dbff; }
+.portal-link:hover { transform: translateY(-2px); filter: brightness(0.97); }
+
+.back-ph {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back-ph:hover { color: var(--primary); }
+</style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="logo-box" id="uiLogo">⭐</div>
+    <div class="school-title" id="uiSchoolName">HỆ THỐNG TUYỂN SINH</div>
+
+    <div id="loginFormBox">
+      <h1>Cổng Đăng Nhập Nội Bộ</h1>
+      <p class="desc">Hệ thống tự động nhận diện quyền Nhân viên, Quản trị viên (Admin) hoặc Chủ đầu tư sau khi đăng nhập.</p>
+
+      <div id="errBox" class="error-msg"></div>
+
+      <div class="field-group">
+        <label>Tên tài khoản</label>
+        <input type="text" id="username" class="inp" placeholder="Nhập tài khoản được cấp..." autocomplete="username">
+      </div>
+
+      <div class="field-group">
+        <label>Mật khẩu</label>
+        <input type="password" id="password" class="inp" placeholder="Nhập mật khẩu..." autocomplete="current-password" onkeydown="if(event.key==='Enter') handleUnifiedLogin()">
+      </div>
+
+      <button class="btn-submit" id="btnSubmit" onclick="handleUnifiedLogin()">ĐĂNG NHẬP HỆ THỐNG</button>
+
+      <a class="back-ph" href="phuhuynh.html">← Quay lại Cổng đăng ký Phụ huynh</a>
+    </div>
+
+    <div id="roleResultBox">
+      <h1 id="welcomeUser">Xin chào!</h1>
+      <div id="roleBadge" class="role-pill role-nv">NHÂN VIÊN</div>
+      <p class="desc" id="redirectHint">Hệ thống đã xác nhận phân quyền của bạn. Đang mở không gian làm việc...</p>
+      <div id="portalButtons"></div>
+      <button type="button" class="back-ph" style="background:none;border:none;cursor:pointer;" onclick="switchOtherAccount()">🔄 Đăng nhập bằng tài khoản khác</button>
+    </div>
+  </div>
+
+<script src="config.js"></script>
+<script>
+  window.onload = function() {
+    fetchSystemDataFast(false).then(res => {
+      if (res && res.config) {
+        if (res.config.TEN_TRUONG) document.getElementById('uiSchoolName').innerText = res.config.TEN_TRUONG;
+        if (res.config.URL_LOGO && res.config.URL_LOGO.trim() !== '') {
+          let logoBox = document.getElementById('uiLogo');
+          let img = document.createElement('img');
+          img.src = res.config.URL_LOGO.trim();
+          img.onerror = function() { logoBox.textContent = '⭐'; };
+          logoBox.innerHTML = '';
+          logoBox.appendChild(img);
+        }
+      }
+    }).catch(() => {});
+
+    let saved = localStorage.getItem('ts_auth_session');
+    if (saved) {
+      try {
+        let sess = JSON.parse(saved);
+        if (sess && sess.username && sess.roleCode && sess.token) {
+          showRoleScreen(sess, false);
+        }
+      } catch (e) {}
+    }
+  };
+
+  async function handleUnifiedLogin() {
+    let u = document.getElementById('username').value.trim();
+    let p = document.getElementById('password').value.trim();
+    let errBox = document.getElementById('errBox');
+    errBox.style.display = 'none';
+
+    if (!u || !p) {
+      errBox.innerText = '⚠️ Vui lòng nhập đầy đủ Tên tài khoản và Mật khẩu!';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    let btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.innerText = '⏳ ĐANG KIỂM TRA QUYỀN...';
+
+    try {
+      let res = await callBackend('login', { username: u, password: p });
+      btn.disabled = false;
+      btn.innerText = 'ĐĂNG NHẬP HỆ THỐNG';
+
+      if (!res || !res.success) {
+        errBox.innerText = '❌ ' + (res ? res.error : 'Lỗi kết nối máy chủ!');
+        errBox.style.display = 'block';
+        return;
+      }
+
+      let sessionObj = {
+        username: res.username || u,
+        token: res.token || '',
+        name: res.name,
+        role: res.role,
+        roleCode: res.roleCode,
+        loginTime: Date.now()
+      };
+      localStorage.setItem('ts_auth_session', JSON.stringify(sessionObj));
+      localStorage.setItem('ts_staff', res.name);
+
+      showRoleScreen(sessionObj, true);
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerText = 'ĐĂNG NHẬP HỆ THỐNG';
+      errBox.innerText = '❌ ' + err.message;
+      errBox.style.display = 'block';
+    }
+  }
+
+  function showRoleScreen(sess, autoRedirect) {
+    document.getElementById('loginFormBox').style.display = 'none';
+    document.getElementById('roleResultBox').style.display = 'block';
+    document.getElementById('welcomeUser').innerText = 'Xin chào, ' + sess.name + '!';
+
+    let badge = document.getElementById('roleBadge');
+    let btnArea = document.getElementById('portalButtons');
+    let hint = document.getElementById('redirectHint');
+    let targetUrl = '';
+
+    if (sess.roleCode === 'ADMIN') {
+      badge.className = 'role-pill role-admin';
+      badge.innerText = '🛡️ QUYỀN: QUẢN TRỊ VIÊN (ADMIN)';
+      hint.innerText = 'Tài khoản của bạn có toàn quyền Quản trị hệ thống và Tiếp nhận hồ sơ:';
+      targetUrl = 'admin.html';
+      btnArea.innerHTML = `
+        <a class="portal-link primary" href="admin.html">📊 Vào Cổng Quản Trị & Báo Cáo →</a>
+        <a class="portal-link secondary" href="nhanvien.html">🖥️ Vào Cổng Tiếp Nhận (Nhân Viên) →</a>
+      `;
+    } else if (sess.roleCode === 'CHU_DAU_TU') {
+      badge.className = 'role-pill role-cdt';
+      badge.innerText = '📈 QUYỀN: CHỦ ĐẦU TƯ (CHỈ XEM)';
+      hint.innerText = 'Đang mở Bảng thống kê và Biểu đồ tuyển sinh dành cho Chủ đầu tư...';
+      targetUrl = 'admin.html';
+      btnArea.innerHTML = `
+        <a class="portal-link primary" href="admin.html">📈 Mở Bảng Báo Cáo & Biểu Đồ →</a>
+      `;
+    } else {
+      badge.className = 'role-pill role-nv';
+      badge.innerText = '🎧 QUYỀN: NHÂN VIÊN TUYỂN SINH';
+      hint.innerText = 'Đang mở Cổng Tiếp Nhận & Đối Chiếu Hồ Sơ Tuyển Sinh...';
+      targetUrl = 'nhanvien.html';
+      btnArea.innerHTML = `
+        <a class="portal-link primary" href="nhanvien.html">🎧 Mở Cổng Tiếp Nhận Hồ Sơ →</a>
+      `;
+    }
+
+    if (autoRedirect && targetUrl && sess.roleCode !== 'ADMIN') {
+      setTimeout(() => { window.location.href = targetUrl; }, 380);
+    }
+  }
+
+  async function switchOtherAccount() {
+    try { await callBackend('logout'); } catch (e) {}
+    localStorage.removeItem('ts_auth_session');
+    localStorage.removeItem('ts_staff');
+    document.getElementById('password').value = '';
+    document.getElementById('roleResultBox').style.display = 'none';
+    document.getElementById('loginFormBox').style.display = 'block';
+  }
+</script>
+</body>
+</html>

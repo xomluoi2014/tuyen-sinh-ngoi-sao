@@ -1,189 +1,500 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Màn Hình Đối Chiếu Phụ Huynh – Trường Tiểu học Ngôi Sao</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body { background: #eef6e8; min-height: 100vh; display: flex; flex-direction: column; }
-    .mhp-wrap { flex: 1; max-width: 1180px; width: 100%; margin: 18px auto; padding: 0 18px; }
-    .standby-card {
-      background: linear-gradient(135deg, #2e6b18 0%, #4e972e 55%, #8bc83a 100%);
-      border-radius: 28px; padding: 48px 40px; color: #fff;
-      display: flex; align-items: center; justify-content: space-between; gap: 32px;
-      box-shadow: 0 18px 45px rgba(46, 107, 24, 0.25);
-      min-height: 74vh;
-    }
-    .standby-card h1 { font-size: 38px; margin: 0 0 14px; font-weight: 800; line-height: 1.2; }
-    .standby-card p { font-size: 19px; opacity: 0.95; max-width: 600px; line-height: 1.6; }
-    .standby-art {
-      width: 240px; height: 240px; border-radius: 40px; overflow: hidden;
-      background: #f4fbea; border: 6px solid rgba(255,255,255,0.88);
-      transform: rotate(4deg); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.2);
-    }
-    .standby-art img { width: 100%; height: 100%; object-fit: cover; }
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Màn hình đối chiếu Phụ huynh | Tiểu học Ngôi Sao</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234e972e'/%3E%3Cpath d='M32 10l6.6 13.4 14.8 2.1-10.7 10.4 2.5 14.7L32 43.7 18.8 50.6l2.5-14.7L10.6 25.5l14.8-2.1z' fill='%23f4c43f'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cổng Tuyển Sinh Trực Tuyến | Trường Tiểu học Ngôi Sao">
+<meta property="og:description" content="Hệ thống đăng ký tuyển sinh thông minh: Phụ huynh nộp hồ sơ nhận Thẻ QR trong 2 phút, đối chiếu trực tiếp 2 màn hình, báo cáo thời gian thực.">
+<meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhoX1VX6K3DpEXCZVE5DkPZkdOMPY04c129_HbQoFnhWPg6cz1Jx00hI0&s=10">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;800&family=Inter:wght@400;600;700;800&display=swap');
+  :root{font-family:'Quicksand',sans-serif; background:#f4fbea; color:#111; --primary:#4e972e; --accent:#f4c43f; --line:#dcebc5;}
+  * { box-sizing: border-box; }
+  body { margin:0; overflow-x:hidden; background-image:radial-gradient(circle at 4% 10%,#e2f6b9 0 12%,transparent 30%),radial-gradient(circle at 95% 38%,#e9f7cf 0 9%,transparent 25%);}
 
-    .review-box { display: none; }
-    .review-header {
-      background: linear-gradient(135deg, #2e6b18, #4e972e);
-      color: #fff; border-radius: 20px; padding: 18px 24px;
-      display: flex; justify-content: space-between; align-items: center; gap: 16px;
-      margin-bottom: 16px;
-    }
-    .review-grid {
-      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px;
-    }
-    .rv-item {
-      background: #fff; border: 1.5px solid var(--brand-border); border-radius: 14px;
-      padding: 12px 16px;
-    }
-    .rv-item.span-2 { grid-column: 1 / -1; }
-    .rv-label { font-size: 13px; color: var(--ink-muted); font-weight: 600; margin-bottom: 3px; }
-    .rv-value { font-size: 20px; font-weight: 800; color: var(--ink); word-break: break-word; }
-    .rv-value.empty { color: #cbd5e1; font-weight: 500; font-style: italic; font-size: 16px; }
+  /* Nút Toàn màn hình gọn nhẹ góc trên phải */
+  .btn-fullscreen {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 250;
+    border: 1.5px solid #c8dcae;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(6px);
+    color: #24422d;
+    border-radius: 12px;
+    padding: 8px 13px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    transition: 0.2s;
+  }
+  .btn-fullscreen:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-    .approved-card {
-      display: none; text-align: center; background: #fff; border-radius: 28px;
-      padding: 56px 30px; border: 3px solid #22c55e; box-shadow: var(--shadow-md);
-    }
-    .approved-card h1 { font-size: 34px; color: #15803d; margin: 12px 0; }
-    .approved-card p { font-size: 19px; color: var(--ink-muted); }
-  </style>
+  /* MÀN HÌNH CHỜ (HERO START) */
+  #waitingScreen { position:fixed; inset:0; background:#f4fbea; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99; transition:0.3s; padding:20px;}
+  .hero{position:relative;overflow:hidden;border-radius:40px;background:linear-gradient(120deg,#429344,#8bc83a);color:#fff;min-height:280px;padding:50px 60px;display:flex;align-items:center;justify-content:space-between;isolation:isolate;box-shadow:0 20px 50px rgba(66,137,50,.2); width:100%; max-width:1100px; margin-bottom:40px;}
+  .hero:before{content:'✦  ✨  ✦';position:absolute;right:320px;top:40px;font-size:30px;opacity:.48}
+  .hero h1{font-size:clamp(35px,4.5vw,60px);line-height:1.1;letter-spacing:-1.5px;margin:15px 0 20px;font-weight:800;max-width:650px;text-transform:uppercase}
+  .hero p{max-width:600px;font-size:18px;font-weight:500;line-height:1.7;margin:0;opacity:.9}
+  .hero .eyebrow{opacity:.9;font-weight:700; letter-spacing:2px; font-size:14px; text-transform:uppercase;}
+  .hero-art{width:300px;min-width:250px;align-self:stretch;display:grid;place-items:center;position:relative}
+  .hero-art img { width: 220px; height: 220px; object-fit: cover; border-radius: 45px; border: 6px solid rgba(255,255,255,0.4); box-shadow: 0 15px 35px rgba(0,0,0,0.2); transform: rotate(5deg); }
+  .orb{width:200px;height:200px;border-radius:50px;display:grid;place-items:center;background:#ffe27c;font-size:100px;transform:rotate(8deg);border:6px solid #fff;box-shadow:0 18px 0 #e6c455,0 25px 40px rgba(18,90,26,.2)}
+  .spark{position:absolute;right:5px;top:12px;font-size:50px;transform:rotate(18deg)}
+  .shape-a,.shape-b{position:absolute;display:block;width:300px;height:300px;border:2px solid rgba(255,255,255,.20);border-radius:50%;pointer-events:none}
+  .shape-a{right:-50px;bottom:-150px} .shape-b{right:150px;top:-180px}
+
+  .wait-pulse{display:inline-flex;align-items:center;gap:12px;border:1px solid #dcebc5;padding:15px 25px;border-radius:100px;font-weight:800;font-size:16px;background:#fff; color:var(--primary); font-family:'Inter', sans-serif; box-shadow:0 10px 25px rgba(78,151,46,0.1);}
+  .wait-pulse span{width:12px;height:12px;border-radius:50%;background:#4e972e;box-shadow:0 0 0 7px rgba(78,151,46,0.15); animation:pulse 1.5s infinite;}
+  @keyframes pulse { 0%{transform:scale(0.9); opacity:0.8;} 50%{transform:scale(1.1); opacity:1;} 100%{transform:scale(0.9); opacity:0.8;}}
+
+  /* THANH THÔNG TIN CỐ ĐỊNH TRÊN ĐỈNH */
+  .sticky-student-bar {
+    position: sticky; top: 0; z-index: 60;
+    background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--line); box-shadow: 0 6px 20px rgba(78, 151, 46, 0.08);
+    padding: 12px 150px 12px 30px;
+  }
+  .sticky-inner {
+    max-width: 1100px; margin: 0 auto; display: flex; align-items: center;
+    justify-content: space-between; gap: 15px; flex-wrap: wrap; font-family: 'Inter', sans-serif;
+  }
+  .st-badge-ticket { background: var(--primary); color: #fff; font-weight: 800; font-size: 14px; padding: 7px 14px; border-radius: 10px; letter-spacing: 0.5px; }
+  .st-info-item { font-size: 14px; color: #4a5c48; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .st-info-item b { color: #111; font-weight: 800; font-size: 15px; }
+
+  /* FORM ĐỒNG BỘ & THANH TIẾN TRÌNH CÁC BƯỚC */
+  #syncScreen { display:none; padding-bottom: 50px; }
+  .sync-card { max-width:1100px; margin:28px auto; background:#fff; padding:42px 55px; border-radius:30px; box-shadow:0 15px 40px rgba(78,151,46,0.08); border: 2px solid #e1efcf; }
+  .step-progress-bar { display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; }
+  .sp-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 99px; background: #f4fbea; border: 1.5px solid #dcebc5; color: #4a5c48; font-weight: 800; font-size: 13.5px; transition: 0.25s; }
+  .sp-pill .sp-num { width: 24px; height: 24px; border-radius: 50%; background: #fff; color: var(--primary); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .sp-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(78,151,46,0.22); }
+  .sp-pill.active .sp-num { background: rgba(255,255,255,0.25); color: #fff; }
+
+  .top-header { display:flex; align-items:center; gap:20px; border-bottom:2px solid #e1efcf; padding-bottom:22px; margin-bottom:32px;}
+  .icon-star { width:62px; height:62px; background:var(--primary); color:#fff; display:grid; place-items:center; font-size:30px; border-radius:18px; overflow:hidden; flex-shrink:0;}
+  .icon-star img {width: 100%; height: 100%; object-fit: contain; padding: 3px; background:#fff;}
+
+  h2.tab-title { font-size:34px; color:var(--primary); margin:0; font-weight:800;}
+  .kicker { font-family:'Inter',sans-serif; font-size:13.5px; font-weight:700; color:#637960; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;}
+
+  .grid { display:flex; flex-wrap:wrap; gap:25px 20px; }
+  .field { display:flex; flex-direction:column; gap:8px; box-sizing: border-box; position: relative;}
+  .field-100 { width:100%; } .field-50 { width:calc(50% - 10px); }
+  .field label { font-size:15px; font-weight:800; color:#24422d; display:flex; align-items:center; justify-content:space-between; }
+
+  .val {
+    width: 100%; box-sizing: border-box; font-family:'Inter',sans-serif; font-size:17px; font-weight:700; color:#111;
+    padding:16px 20px; background:#fff; border:1.5px solid #dcebc5; border-radius:12px; min-height:56px;
+    display:flex; align-items:center; word-break:break-word; transition:all 0.2s ease-out; position: relative;
+  }
+  .val.checkbox-val { background: #fbfdf8; color: #637960; border-style: dashed; font-size: 15.5px; }
+  .val.checkbox-val.checked { background: #eaf6e3; border-style: solid; border-color: var(--primary); color: #155724; }
+
+  .val.focusing { border-color: #f4c43f !important; background: #fffdf4 !important; box-shadow: 0 0 0 4px rgba(244, 196, 63, 0.22); }
+  .val.focusing::after {
+    content: '👁️ Đang kiểm tra'; position: absolute; right: 12px; top: -12px; background: #f4c43f; color: #111;
+    font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 99px; box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  }
+  .val.editing { border-color:var(--primary) !important; background:#f9fcf5 !important; box-shadow:0 0 0 4px rgba(78,151,46,0.18); transform:scale(1.01); }
+  .val.editing::after {
+    content: '✏️ Đang cập nhật'; position: absolute; right: 12px; top: -12px; background: var(--primary); color: #fff;
+    font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 99px;
+  }
+  .val:empty::before { content:'Đang cập nhật...'; color:#aabfab; font-weight:500; font-style:italic; }
+
+  /* MÀN HÌNH CHÚC MỪNG ĐỐI CHIẾU HOÀN TẤT */
+  #approvedOverlay {
+    position: fixed; inset: 0; background: rgba(244, 251, 234, 0.96); backdrop-filter: blur(8px);
+    z-index: 120; display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .approved-card {
+    background: #fff; max-width: 680px; width: 100%; border-radius: 34px; padding: 48px 42px;
+    text-align: center; border: 2px solid #c8dcae; box-shadow: 0 25px 60px rgba(78, 151, 46, 0.15);
+  }
+  .approved-ic { width: 92px; height: 92px; border-radius: 50%; background: #d4edda; color: #155724; font-size: 46px; display: grid; place-items: center; margin: 0 auto 22px; box-shadow: 0 12px 25px rgba(40, 167, 69, 0.2); }
+  .approved-card h2 { font-size: 32px; color: var(--primary); margin: 0 0 12px; font-weight: 800; }
+  .approved-card p { font-size: 18px; color: #4a5c48; line-height: 1.6; font-weight: 600; margin: 0 0 26px; }
+  .approved-student-box { background: #f4fbea; border: 2px dashed var(--primary); border-radius: 20px; padding: 18px 24px; font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 800; color: #111; display: inline-block; }
+
+  /* MÀN HÌNH MÃ QR BỔ SUNG HỒ SƠ (QR 2 CHIỀU TẠI QUẦY) */
+  #revisionQrOverlay {
+    position: fixed; inset: 0; background: rgba(255, 248, 235, 0.97); backdrop-filter: blur(8px);
+    z-index: 130; display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .revqr-card {
+    background: #fff; max-width: 820px; width: 100%; border-radius: 34px; padding: 38px 42px;
+    border: 3px solid #f59e0b; box-shadow: 0 25px 60px rgba(230, 126, 34, 0.18);
+    display: flex; align-items: center; gap: 36px; flex-wrap: wrap; justify-content: center;
+  }
+  .revqr-left { flex: 1; min-width: 280px; text-align: left; }
+  .revqr-badge {
+    display: inline-block; background: #e67e22; color: #fff; font-weight: 800; font-size: 13px;
+    padding: 6px 14px; border-radius: 99px; letter-spacing: 0.5px; margin-bottom: 12px; font-family: 'Inter', sans-serif;
+  }
+  .revqr-left h2 { margin: 0 0 10px; font-size: 28px; color: #182b45; font-weight: 800; line-height: 1.25; }
+  .revqr-student {
+    font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 800; color: #4e972e; margin-bottom: 14px;
+  }
+  .revqr-note {
+    background: #fff8eb; border: 2px dashed #f59e0b; border-radius: 16px; padding: 14px 18px;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #9a3412; line-height: 1.5; margin-bottom: 16px;
+  }
+  .revqr-hint { font-size: 15px; color: #4a5c48; font-weight: 700; line-height: 1.5; }
+  .revqr-right {
+    background: #ffffff; border: 3px solid #fde68a; border-radius: 26px; padding: 18px;
+    text-align: center; box-shadow: 0 12px 30px rgba(230, 126, 34, 0.12);
+  }
+  .revqr-right canvas { display: block; border-radius: 12px; }
+  .revqr-scan-lbl {
+    margin-top: 10px; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 14px; color: #d97706;
+  }
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand-wrap">
-      <div class="brand-symbol" id="mhpLogo">⭐</div>
-      <div>
-        <div class="brand-title" id="mhpSchool">TRƯỜNG TIỂU HỌC NGÔI SAO</div>
-        <div class="brand-sub" id="mhpSub">Màn hình đối chiếu thông tin tuyển sinh dành cho Phụ huynh</div>
+
+<button class="btn-fullscreen" id="btnFs" onclick="toggleFullscreen()">⛶ Toàn màn hình</button>
+
+<div id="waitingScreen">
+  <section class="hero">
+    <span class="shape-a"></span><span class="shape-b"></span>
+    <div class="hero-copy">
+      <div class="eyebrow">ĐỐI CHIẾU HỒ SƠ CHÍNH THỨC</div>
+      <h1 id="ui_hero_title">CHÀO MỪNG ĐẾN VỚI NGÔI SAO</h1>
+      <p>Nhà trường đang chuẩn bị hồ sơ để cùng quý phụ huynh đối chiếu và chỉnh sửa thông tin trực tiếp.</p>
+    </div>
+    <div class="hero-art" aria-hidden="true" id="ui_hero_art_container">
+      <div class="orb">🌈</div>
+      <div class="spark">✨</div>
+    </div>
+  </section>
+  <div class="wait-pulse"><span></span> Vui lòng chờ nhân viên mở hồ sơ trong giây lát...</div>
+</div>
+
+<!-- MÀN HÌNH CHÚC MỪNG KHI ĐỐI CHIẾU XONG & ĐANG IN PHIẾU -->
+<div id="approvedOverlay">
+  <div class="approved-card">
+    <div class="approved-ic">🎉</div>
+    <h2>ĐỐI CHIẾU HỒ SƠ HOÀN TẤT!</h2>
+    <p>Thông tin hồ sơ đã được xác nhận chính xác. Nhà trường đang tiến hành <b>in Phiếu đăng ký</b>, quý phụ huynh vui lòng đợi trong giây lát để kiểm tra và ký xác nhận.</p>
+    <div class="approved-student-box" id="approvedStudentInfo">HỒ SƠ: NS26-0000</div>
+  </div>
+</div>
+
+<!-- MÀN HÌNH QR BỔ SUNG HỒ SƠ (QUÉT TẠI CHỖ BẰNG ZALO / CAMERA) -->
+<div id="revisionQrOverlay">
+  <div class="revqr-card">
+    <div class="revqr-left">
+      <div class="revqr-badge">🟠 YÊU CẦU BỔ SUNG THÔNG TIN</div>
+      <h2>Quét mã QR để sửa hồ sơ ngay trên điện thoại</h2>
+      <div class="revqr-student" id="revQrStudent">HỒ SƠ: NS26-0000</div>
+      <div class="revqr-note" id="revQrNote">Nội dung cần bổ sung: ...</div>
+      <div class="revqr-hint">
+        📱 <b>Hướng dẫn:</b> Quý phụ huynh mở <b>Camera điện thoại</b> hoặc mục <b>Quét QR trên Zalo</b> chĩa vào mã bên cạnh để mở lại hồ sơ và bổ sung trực tiếp.
       </div>
     </div>
-    <span class="badge badge-da-duyet" id="syncBadge">🟢 Đã sẵn sàng đồng bộ</span>
-  </header>
+    <div class="revqr-right">
+      <canvas id="revQrCanvas" width="280" height="280"></canvas>
+      <div class="revqr-scan-lbl">📷 QUÉT BẰNG CAMERA / ZALO</div>
+    </div>
+  </div>
+</div>
 
-  <main class="mhp-wrap">
-    <!-- Màn hình chờ -->
-    <section class="standby-card" id="standbyView">
+<div id="syncScreen">
+  <div class="sticky-student-bar">
+    <div class="sticky-inner">
+      <span class="st-badge-ticket" id="stTicket">MÃ HS: ---</span>
+      <div class="st-info-item">👶 Học sinh: <b id="stName">Đang cập nhật</b></div>
+      <div class="st-info-item">🎂 Ngày sinh: <b id="stDob">---</b></div>
+      <div class="st-info-item">🏫 Khối đăng ký: <b id="stGrade">---</b></div>
+    </div>
+  </div>
+
+  <div class="sync-card">
+    <div class="step-progress-bar" id="stepProgressBar"></div>
+
+    <div class="top-header">
+      <div class="icon-star" id="ui_logo_sync">⭐</div>
       <div>
-        <div style="display:inline-block; background:rgba(255,255,255,0.2); padding:6px 16px; border-radius:999px; font-weight:700; font-size:15px; margin-bottom:14px;" id="standbyYear">NĂM HỌC 2026 - 2027</div>
-        <h1>Chào Mừng Quý Phụ Huynh Đến Với Bàn Tiếp Nhận Hồ Sơ</h1>
-        <p>Quý phụ huynh vui lòng xuất trình <b>Mã QR Hồ Sơ</b> trên điện thoại để cán bộ tuyển sinh mở hồ sơ và cùng kiểm tra đối chiếu thông tin trên màn hình này.</p>
+        <div class="kicker">ĐỐI CHIẾU HỒ SƠ TUYỂN SINH</div>
+        <h2 class="tab-title" id="tabTitle">Đang tải...</h2>
       </div>
-      <div class="standby-art" id="standbyArt"><span style="font-size:88px;">🏫</span></div>
-    </section>
+    </div>
+    <div class="grid" id="formArea"></div>
+  </div>
+</div>
 
-    <!-- Màn hình hiển thị thông tin đối chiếu -->
-    <section class="review-box" id="reviewView">
-      <div class="review-header">
-        <div>
-          <div style="font-size:14px; opacity:0.9;">QUÝ PHỤ HUYNH VUI LÒNG KIỂM TRA KỸ THÔNG TIN DƯỚI ĐÂY</div>
-          <div style="font-size:26px; font-weight:800; margin-top:4px;" id="rvTitle">Hồ sơ: —</div>
-        </div>
-        <div style="text-align:right;">
-          <div id="rvStatusBadge" class="badge badge-cho-duyet" style="font-size:15px; padding:6px 14px;">Chờ duyệt</div>
-          <div style="font-size:13px; margin-top:6px; opacity:0.9;" id="rvTabName"></div>
-        </div>
-      </div>
-      <div class="review-grid" id="rvGrid"></div>
-    </section>
+<script src="config.js"></script>
+<script>
+  let serverData = null;
+  let isWaiting = true;
+  let scrollEnabled = true;
+  let cachedSyncMsg = null;
+  let bc = new BroadcastChannel(window.APP_CONFIG.SYNC_CHANNEL);
 
-    <!-- Màn hình Chúc mừng Đã duyệt -->
-    <section class="approved-card" id="approvedView">
-      <div style="font-size:74px;">🏆</div>
-      <h1>Xác Nhận Tiếp Nhận Hồ Sơ Thành Công!</h1>
-      <p id="approvedDesc">Hồ sơ của học sinh đã được đối chiếu chính xác và phê duyệt trên hệ thống.</p>
-      <div style="margin-top:18px; font-size:16px; color:var(--brand-dark); font-weight:700;">Cảm ơn Quý Phụ huynh đã tin tưởng đồng hành cùng Nhà trường!</div>
-    </section>
-  </main>
-
-  <script src="config.js"></script>
-  <script>
-    const MHP = { fields: [], tabs: [], channel: null };
-
-    function showOnly(id) {
-      document.getElementById('standbyView').style.display = id === 'standby' ? 'flex' : 'none';
-      document.getElementById('reviewView').style.display = id === 'review' ? 'block' : 'none';
-      document.getElementById('approvedView').style.display = id === 'approved' ? 'block' : 'none';
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
     }
+  }
+  document.addEventListener('fullscreenchange', () => {
+    document.getElementById('btnFs').innerText = document.fullscreenElement ? '✖ Thoát toàn màn hình' : '⛶ Toàn màn hình';
+  });
 
-    function renderRecord(record, activeTabId) {
-      if (!record) { showOnly('standby'); return; }
-      showOnly('review');
-      document.getElementById('rvTitle').textContent = `${record.Ma_Ticket || ''} — ${record.Ho_Ten_HS || ''}`;
-      const st = record.Trang_Thai || 'Chờ duyệt';
-      const stEl = document.getElementById('rvStatusBadge');
-      stEl.textContent = st;
-      stEl.className = 'badge ' + (st === 'Đã duyệt' ? 'badge-da-duyet' : st === 'Chờ bổ sung' ? 'badge-cho-bo-sung' : st === 'Đã loại' ? 'badge-da-loai' : 'badge-cho-duyet');
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
 
-      const tabObj = MHP.tabs.find(t => t.ID_Tab === activeTabId);
-      document.getElementById('rvTabName').textContent = tabObj ? ('Đang xem: ' + tabObj.Ten_Tab) : 'Toàn bộ thông tin chính';
+  function getViewerTabsList() {
+    if (!serverData) return [];
+    return (serverData.staffTabs && serverData.staffTabs.length > 0) ? serverData.staffTabs : (serverData.tabs || []);
+  }
 
-      const grid = document.getElementById('rvGrid');
-      grid.innerHTML = '';
-
-      const fieldsToShow = activeTabId
-        ? MHP.fields.filter(f => f.ID_Tab === activeTabId && f.Hien_Thi === 'YES')
-        : MHP.fields.filter(f => f.Hien_Thi === 'YES').slice(0, 14);
-
-      fieldsToShow.forEach(f => {
-        const val = String(record[f.ID_Truong] || '').trim();
-        const div = document.createElement('div');
-        div.className = 'rv-item' + (String(f.Do_Rong) === '1' ? ' span-2' : '');
-        div.innerHTML = `
-          <div class="rv-label">${escapeHtml(f.Ten_Hien_Thi)}</div>
-          <div class="rv-value ${val ? '' : 'empty'}">${val ? escapeHtml(val) : '(Chưa điền)'}</div>`;
-        grid.appendChild(div);
-      });
+  function formatDateVN(val) {
+    if (!val) return '';
+    let s = val.toString().trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      let p = s.split('-');
+      return `${p[2]}/${p[1]}/${p[0]}`;
     }
+    return s;
+  }
 
-    function setupChannel() {
-      MHP.channel = new BroadcastChannel(window.APP_CONFIG.SYNC_CHANNEL_NAME);
-      MHP.channel.onmessage = (ev) => {
-        const msg = ev.data || {};
-        if (msg.type === 'SYNC_RECORD') {
-          if (msg.fields && msg.fields.length) MHP.fields = msg.fields;
-          if (msg.tabs && msg.tabs.length) MHP.tabs = msg.tabs;
-          renderRecord(msg.record, msg.activeTabId);
-        } else if (msg.type === 'APPROVED') {
-          showOnly('approved');
-          document.getElementById('approvedDesc').innerHTML =
-            `Hồ sơ <b>${escapeHtml(msg.ticket)}</b> của học sinh <b>${escapeHtml(msg.hoTen)}</b> đã được phê duyệt hoàn tất!`;
-        } else if (msg.type === 'STANDBY') {
-          showOnly('standby');
-        } else if (msg.type === 'PING_VIEWER') {
-          MHP.channel.postMessage({ type: 'VIEWER_READY' });
+  function isCheckedValue(val) {
+    if (!val) return false;
+    let s = val.toString().trim();
+    return (s === 'Đã thu' || s === 'Đồng ý' || s === 'YES' || s === 'TRUE' || s === '1' || s === 'Có');
+  }
+
+  function getCheckboxDisplayText(fieldId, checked) {
+    if (fieldId === 'Cam_Ket_Du_Lieu') {
+      return checked ? '✅ Đã xác nhận cam kết & đồng ý xử lý dữ liệu cá nhân' : '⏳ Chưa xác nhận cam kết';
+    }
+    return checked ? '✅ Đã thu giấy tờ hợp lệ' : '⏳ Chưa thu / Đang kiểm tra';
+  }
+
+  function cleanStepTitle(rawName) {
+    if (!rawName) return '';
+    return rawName.toString().replace(/^\d+[\.\)\-\s]+\s*/, '').trim();
+  }
+
+  function updateStickyStudentBar(data) {
+    if (!data) return;
+    document.getElementById('stTicket').innerText = 'MÃ HS: ' + (data.Ma_Ticket || '---');
+    document.getElementById('stName').innerText = (data.Ho_Ten_HS || data.ho_ten_hs || 'Đang cập nhật').toUpperCase();
+    document.getElementById('stDob').innerText = formatDateVN(data.Ngay_Sinh || data.ngay_sinh) || '---';
+    document.getElementById('stGrade').innerText = data.Khoi_Lop || data.khoi_lop || '---';
+  }
+
+  function drawQrOnCanvas(canvasId, text, size) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof qrcode !== 'function') return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const count = qr.getModuleCount();
+    const pad = 12;
+    const cell = (size - pad * 2) / count;
+    ctx.fillStyle = '#182b45';
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect(Math.floor(pad + c * cell), Math.floor(pad + r * cell), Math.ceil(cell), Math.ceil(cell));
         }
-      };
-      // Auto-Handshake ngay khi tải xong (kể cả khi nhấn F5)
-      MHP.channel.postMessage({ type: 'VIEWER_READY' });
+      }
+    }
+  }
+
+  window.onload = async function() {
+    try {
+      const res = await fetchSystemDataFast(true);
+      serverData = res;
+      if (res.config.URL_LOGO && res.config.URL_LOGO.trim() !== '') {
+        let logoBox = document.getElementById('ui_logo_sync');
+        let img = document.createElement('img');
+        img.src = res.config.URL_LOGO.trim();
+        img.onerror = function() { logoBox.textContent = '⭐'; };
+        logoBox.innerHTML = '';
+        logoBox.appendChild(img);
+      }
+      if (res.config.TEN_TRUONG) document.getElementById('ui_hero_title').innerText = res.config.TEN_TRUONG;
+      if (res.config.URL_ANH_TUYENSINH && res.config.URL_ANH_TUYENSINH.trim() !== '') {
+        let heroBox = document.getElementById('ui_hero_art_container');
+        let hImg = document.createElement('img');
+        hImg.src = res.config.URL_ANH_TUYENSINH.trim();
+        hImg.onerror = function() { heroBox.innerHTML = '<div class="orb">🌈</div><div class="spark">✨</div>'; };
+        heroBox.innerHTML = '';
+        heroBox.appendChild(hImg);
+      }
+      if (cachedSyncMsg && !isWaiting) renderForm(cachedSyncMsg);
+    } catch (e) {}
+    // Auto-Handshake ngay khi tải xong (kể cả sau F5)
+    bc.postMessage({ kind: 'VIEWER_READY' });
+  };
+
+  function renderForm(msg) {
+    let activeTabs = getViewerTabsList();
+    if (!activeTabs || activeTabs.length === 0) return;
+    document.getElementById('approvedOverlay').style.display = 'none';
+    document.getElementById('revisionQrOverlay').style.display = 'none';
+
+    updateStickyStudentBar(msg.data);
+
+    let stepHtml = '';
+    activeTabs.forEach((t, idx) => {
+      let cleanName = escapeHtml(cleanStepTitle(t.name));
+      let isStaffOnly = (t.mode === 'STAFF' || t.mode === 'NV');
+      let stepIcon = isStaffOnly ? '📋' : (idx + 1);
+      stepHtml += `<div class="sp-pill ${idx === msg.tabIndex ? 'active' : ''}">
+                     <span class="sp-num">${stepIcon}</span>
+                     <span>${cleanName}</span>
+                   </div>`;
+    });
+    document.getElementById('stepProgressBar').innerHTML = stepHtml;
+
+    let tabInfo = activeTabs[msg.tabIndex];
+    if (!tabInfo) return;
+    document.getElementById('tabTitle').innerText = tabInfo.name;
+
+    let html = '';
+    let fields = serverData.fields.filter(f => f.tab === tabInfo.id);
+    fields.forEach(f => {
+      let w = f.width.toString().trim();
+      let flexClass = (w === '1' || w === '100' || w === '100%') ? 'field-100' : 'field-50';
+      let rawVal = (msg.data && msg.data[f.id]) ? msg.data[f.id] : '';
+      let safeName = escapeHtml(f.name);
+
+      if (f.type === 'Checkbox') {
+        let checked = isCheckedValue(rawVal);
+        let disp = escapeHtml(getCheckboxDisplayText(f.id, checked));
+        html += `<div class="field ${flexClass}" id="wrap_${f.id}">
+                   <label>${safeName}</label>
+                   <div class="val checkbox-val ${checked ? 'checked' : ''}" data-type="Checkbox" id="val_${f.id}">${disp}</div>
+                 </div>`;
+      } else {
+        let val = escapeHtml(formatDateVN(rawVal));
+        html += `<div class="field ${flexClass}" id="wrap_${f.id}">
+                   <label>${safeName}</label>
+                   <div class="val" data-type="${escapeHtml(f.type)}" id="val_${f.id}">${val}</div>
+                 </div>`;
+      }
+    });
+    document.getElementById('formArea').innerHTML = html;
+    window.scrollTo(0, 0);
+  }
+
+  function scrollToFieldWrap(wrap) {
+    if (!wrap || !scrollEnabled) return;
+    let rect = wrap.getBoundingClientRect();
+    if (rect.top < 110 || rect.bottom > window.innerHeight - 60) {
+      let offsetPosition = rect.top + window.pageYOffset - (window.innerHeight / 2) + (rect.height / 2);
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+    }
+  }
+
+  bc.onmessage = function(ev) {
+    let msg = ev.data || {};
+
+    if (msg.kind === 'PING_VIEWER') {
+      bc.postMessage({ kind: 'VIEWER_READY' });
+      return;
     }
 
-    (async function init() {
-      try {
-        const res = await callBackend('getPublicData');
-        if (res.success) {
-          const c = res.config || {};
-          MHP.fields = res.fields || [];
-          MHP.tabs = res.tabs || [];
-          document.getElementById('mhpSchool').textContent = c.TEN_TRUONG || 'TRƯỜNG TIỂU HỌC NGÔI SAO';
-          document.getElementById('standbyYear').textContent = 'NĂM HỌC ' + (c.NAM_HOC || '2026 - 2027');
-          renderBrandLogo(document.getElementById('mhpLogo'), c.URL_LOGO);
-          if (c.URL_ANH_TUYENSINH && /^https?:\/\//i.test(c.URL_ANH_TUYENSINH)) {
-            const art = document.getElementById('standbyArt');
-            art.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = c.URL_ANH_TUYENSINH;
-            img.alt = 'Ảnh tuyển sinh';
-            art.appendChild(img);
-          }
+    if (msg.kind === 'MODE') {
+      isWaiting = msg.waiting;
+      if (isWaiting) {
+        document.getElementById('approvedOverlay').style.display = 'none';
+        document.getElementById('revisionQrOverlay').style.display = 'none';
+      }
+      document.getElementById('waitingScreen').style.display = isWaiting ? 'flex' : 'none';
+      document.getElementById('syncScreen').style.display = isWaiting ? 'none' : 'block';
+      if (!isWaiting && cachedSyncMsg && serverData) renderForm(cachedSyncMsg);
+    }
+
+    if (msg.kind === 'SYNC_FULL') {
+      cachedSyncMsg = msg;
+      if (!isWaiting && serverData) renderForm(msg);
+    }
+
+    if (msg.kind === 'FOCUS_FIELD' && !isWaiting) {
+      document.querySelectorAll('.val.focusing').forEach(el => el.classList.remove('focusing'));
+      let el = document.getElementById('val_' + msg.field);
+      let wrap = document.getElementById('wrap_' + msg.field);
+      if (el) {
+        el.classList.add('focusing');
+        scrollToFieldWrap(wrap);
+      }
+    }
+
+    if (msg.kind === 'LIVE_UPDATE' && !isWaiting) {
+      let formattedVal = formatDateVN(msg.val);
+      if (cachedSyncMsg && cachedSyncMsg.data) {
+        cachedSyncMsg.data[msg.field] = formattedVal;
+        updateStickyStudentBar(cachedSyncMsg.data);
+      }
+      let el = document.getElementById('val_' + msg.field);
+      let wrap = document.getElementById('wrap_' + msg.field);
+      if (el) {
+        if (el.getAttribute('data-type') === 'Checkbox') {
+          let checked = isCheckedValue(formattedVal);
+          el.innerText = getCheckboxDisplayText(msg.field, checked);
+          el.classList.toggle('checked', checked);
+        } else {
+          el.innerText = formattedVal;
         }
-      } catch (e) {}
-      setupChannel();
-    })();
-  </script>
+        el.classList.remove('focusing');
+        el.classList.add('editing');
+        clearTimeout(el.editTimer);
+        el.editTimer = setTimeout(() => { el.classList.remove('editing'); }, 700);
+        scrollToFieldWrap(wrap);
+      }
+    }
+
+    if (msg.kind === 'APPROVED_DONE' && !isWaiting) {
+      document.getElementById('revisionQrOverlay').style.display = 'none';
+      let infoStr = `MÃ HỒ SƠ: ${msg.ticket || ''}` + (msg.studentName ? ` — ${msg.studentName.toUpperCase()}` : '');
+      document.getElementById('approvedStudentInfo').innerText = infoStr;
+      document.getElementById('approvedOverlay').style.display = 'flex';
+    }
+
+    if (msg.kind === 'REVISION_QR') {
+      document.getElementById('approvedOverlay').style.display = 'none';
+      document.getElementById('waitingScreen').style.display = 'none';
+      document.getElementById('syncScreen').style.display = 'block';
+      document.getElementById('revQrStudent').innerText = `MÃ HỒ SƠ: ${msg.ticket || ''}` + (msg.studentName ? ` — ${msg.studentName.toUpperCase()}` : '');
+      document.getElementById('revQrNote').innerText = '💬 Nội dung cần bổ sung: ' + (msg.reason || 'Vui lòng kiểm tra bổ sung đầy đủ thông tin.');
+      drawQrOnCanvas('revQrCanvas', msg.url || buildParentRevisionLink(msg.ticket), 280);
+      document.getElementById('revisionQrOverlay').style.display = 'flex';
+    }
+
+    if (msg.kind === 'SCROLL_TOGGLE') scrollEnabled = msg.enabled;
+    if (msg.kind === 'SCROLL_ANCHOR' && scrollEnabled && !isWaiting) {
+      if (msg.anchor) {
+        let target = document.getElementById('wrap_' + msg.anchor);
+        if (target) {
+          let rect = target.getBoundingClientRect();
+          let offsetPosition = rect.top + window.pageYOffset - 110;
+          window.scrollTo({ top: offsetPosition, behavior: 'instant' });
+        }
+      }
+    }
+  };
+</script>
 </body>
 </html>
