@@ -11,6 +11,7 @@
 <meta property="og:description" content="Cổng đăng ký hồ sơ tuyển sinh trực tuyến Trường Tiểu học Ngôi Sao. Điền nhanh trong 2 phút, nhận ngay Thẻ Hồ Sơ QR.">
 <meta property="og:image" content="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhoX1VX6K3DpEXCZVE5DkPZkdOMPY04c129_HbQoFnhWPg6cz1Jx00hI0&s=10">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 :root{--primary:#4e972e;--primary2:#9ccc3f;--accent:#f4c43f;--bg:#f4fbea;--surface:#ffffff;--ink:#111111;--muted:#4a5c48;--line:#dcebc5;--shadow:rgba(54,100,35,.13);--font:'Quicksand', 'Segoe UI', sans-serif;--radius:20px}
@@ -138,6 +139,33 @@
 .lk-bosung { background: #fdebd0; color: #b9770e; }
 .lk-duyet { background: #d4edda; color: #155724; }
 .lk-loai { background: #fce8e8; color: #c0392b; }
+.lk-qr-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.btn-lk-qr {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 10px; border-radius: 12px; font-weight: 800; font-size: 12.8px;
+  border: 1.5px solid #c8dcae; background: #f4fbea; color: #24422d;
+  cursor: pointer; transition: 0.16s; font-family: 'Inter', sans-serif;
+}
+.btn-lk-qr:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-lk-qr.blue { background: #eef5ff; border-color: #bdd6fb; color: #1756a9; }
+.btn-lk-qr.blue:hover { background: #1756a9; color: #fff; border-color: #1756a9; }
+.lk-cam-box {
+  display: none; margin-bottom: 14px; padding: 10px; border-radius: 16px;
+  background: #f8fcf4; border: 1.5px solid var(--line);
+}
+.lk-cam-box.show { display: block; }
+.lk-video-wrap {
+  position: relative; width: 100%; aspect-ratio: 4/3; background: #0f172a;
+  border-radius: 12px; overflow: hidden; border: 2.5px solid var(--primary); margin-bottom: 8px;
+}
+.lk-video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lk-laser {
+  position: absolute; left: 15%; right: 15%; height: 2px; background: #4eff2e;
+  box-shadow: 0 0 10px #4eff2e; animation: lkLaserMove 2s infinite ease-in-out; pointer-events: none;
+}
+@keyframes lkLaserMove { 0%{top:18%} 50%{top:82%} 100%{top:18%} }
+.lk-cam-stt { font-size: 12px; font-weight: 700; color: var(--primary); font-family: 'Inter', sans-serif; margin-bottom: 6px; }
+.lk-cam-stt.err { color: #c0392b; }
 
 @media(max-width:1190px){
   .main{grid-template-columns:218px minmax(0,1fr)}
@@ -220,7 +248,24 @@ body{background-image:radial-gradient(circle at 4% 10%,#e2f6b9 0 12%,transparent
   <div class="modal-box">
     <div class="modal-icon orange" id="lkModalIcon">🔍</div>
     <h3 id="lkModalTitle">Tra cứu & Bổ sung hồ sơ</h3>
-    <p id="lkModalDesc">Nhập <b>Mã hồ sơ</b> (hoặc <b>Số điện thoại phụ huynh</b>) cùng <b>Ngày sinh của học sinh</b> để kiểm tra trạng thái, tải lại Thẻ QR hoặc bổ sung thông tin.</p>
+    <p id="lkModalDesc">Quét <b>Mã QR</b> (trên Màn hình phụ hoặc ảnh Thẻ đã lưu) hoặc nhập <b>Mã hồ sơ / SĐT</b> cùng <b>Ngày sinh của học sinh</b>:</p>
+
+    <div class="lk-qr-bar">
+      <button type="button" class="btn-lk-qr" id="btnToggleLkCam" onclick="toggleLookupQrCamera()">📷 Quét QR (Camera)</button>
+      <label class="btn-lk-qr blue">
+        🖼️ Chọn ảnh Thẻ QR
+        <input type="file" id="lkQrFileInput" accept="image/*" style="display:none;" onchange="scanLookupQrImageFile(this)">
+      </label>
+    </div>
+
+    <div class="lk-cam-box" id="lkCamBox">
+      <div class="lk-video-wrap">
+        <video id="lkQrVideo" autoplay playsinline muted></video>
+        <div class="lk-laser"></div>
+      </div>
+      <div class="lk-cam-stt" id="lkCamStt">⏳ Đang bật Camera...</div>
+      <button type="button" class="btn-modal-half btn-modal-cancel" style="padding:8px 14px;font-size:12.5px;width:100%;" onclick="stopLookupQrCamera()">✖ Tắt Camera</button>
+    </div>
 
     <div class="lookup-form-group">
       <label>Mã hồ sơ hoặc Số điện thoại đã đăng ký</label>
@@ -851,7 +896,188 @@ body{background-image:radial-gradient(circle at 4% 10%,#e2f6b9 0 12%,transparent
     }, 120);
   }
 
-  function closeLookupModal() { document.getElementById('lookupModal').classList.remove('show'); }
+  function closeLookupModal() {
+    stopLookupQrCamera();
+    document.getElementById('lookupModal').classList.remove('show');
+  }
+
+  // =========================================
+  // QUÉT MÃ QR TRONG TRA CỨU (CAMERA + ẢNH THẺ ĐÃ LƯU)
+  // =========================================
+  let lkQrStream = null;
+  let lkQrTimer = null;
+  let lkQrLocked = false;
+  let lkQrCanvas = document.createElement('canvas');
+  let lkQrCtx = lkQrCanvas.getContext('2d', { willReadFrequently: true });
+
+  function playLookupBeep() {
+    try {
+      let a = new (window.AudioContext || window.webkitAudioContext)();
+      let o = a.createOscillator(), g = a.createGain();
+      o.frequency.value = 1046; g.gain.value = 0.14;
+      o.connect(g); g.connect(a.destination);
+      o.start(); o.stop(a.currentTime + 0.11);
+    } catch (e) {}
+  }
+
+  function extractTicketFromQrText(raw) {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    try {
+      if (/^https?:\/\//i.test(s) || s.includes('?')) {
+        let u = new URL(s, window.location.href);
+        let tkParam = u.searchParams.get('ticket');
+        if (tkParam) return tkParam.trim().toUpperCase();
+      }
+    } catch (e) {}
+    let m = s.match(/[A-Z0-9]+-\d{3,6}/i);
+    return m ? m[0].toUpperCase() : s.toUpperCase();
+  }
+
+  function stopLookupQrCamera() {
+    if (lkQrTimer) { clearTimeout(lkQrTimer); lkQrTimer = null; }
+    if (lkQrStream) {
+      lkQrStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+      lkQrStream = null;
+    }
+    let box = document.getElementById('lkCamBox');
+    if (box) box.classList.remove('show');
+    let btn = document.getElementById('btnToggleLkCam');
+    if (btn) btn.innerText = '📷 Quét QR (Camera)';
+  }
+
+  async function toggleLookupQrCamera() {
+    if (lkQrStream) {
+      stopLookupQrCamera();
+      return;
+    }
+    lkQrLocked = false;
+    let box = document.getElementById('lkCamBox');
+    let stt = document.getElementById('lkCamStt');
+    let btn = document.getElementById('btnToggleLkCam');
+    box.classList.add('show');
+    stt.className = 'lk-cam-stt';
+    stt.innerText = '⏳ Đang bật Camera...';
+    btn.innerText = '⏹ Đóng Camera';
+
+    try {
+      let s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      lkQrStream = s;
+      let v = document.getElementById('lkQrVideo');
+      v.srcObject = s;
+      stt.innerText = '🟢 Đưa mã QR (trên Màn hình phụ hoặc Thẻ hồ sơ) vào khung xanh';
+      runLookupQrLoop();
+    } catch (err) {
+      stt.className = 'lk-cam-stt err';
+      stt.innerText = '⚠️ Không bật được Camera (' + (err.name || err) + '). Phụ huynh hãy bấm "🖼️ Chọn ảnh Thẻ QR" hoặc nhập mã thủ công bên dưới!';
+      btn.innerText = '📷 Quét QR (Camera)';
+    }
+  }
+
+  function runLookupQrLoop() {
+    if (!lkQrStream) return;
+    let v = document.getElementById('lkQrVideo');
+    if (!lkQrLocked && v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth > 0 && typeof jsQR === 'function') {
+      let w = Math.min(v.videoWidth, 640);
+      let h = Math.floor(v.videoHeight * (w / v.videoWidth));
+      lkQrCanvas.width = w; lkQrCanvas.height = h;
+      lkQrCtx.drawImage(v, 0, 0, w, h);
+      let imgd = lkQrCtx.getImageData(0, 0, w, h);
+      let res = jsQR(imgd.data, w, h, { inversionAttempts: 'attemptBoth' });
+      if (res && res.data) {
+        handleLookupQrDecoded(res.data);
+        return;
+      }
+    }
+    lkQrTimer = setTimeout(runLookupQrLoop, 130);
+  }
+
+  function decodeQrFromImageRegion(img, sx, sy, sw, sh, maxSide) {
+    let scale = Math.min(1, maxSide / Math.max(sw, sh));
+    let dw = Math.max(1, Math.round(sw * scale));
+    let dh = Math.max(1, Math.round(sh * scale));
+    lkQrCanvas.width = dw; lkQrCanvas.height = dh;
+    lkQrCtx.fillStyle = '#ffffff';
+    lkQrCtx.fillRect(0, 0, dw, dh);
+    lkQrCtx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+    let imgd = lkQrCtx.getImageData(0, 0, dw, dh);
+    return jsQR(imgd.data, dw, dh, { inversionAttempts: 'attemptBoth' });
+  }
+
+  function scanLookupQrImageFile(inputEl) {
+    let file = inputEl && inputEl.files && inputEl.files[0];
+    if (!file) return;
+    if (typeof jsQR !== 'function') {
+      showToast('⚠️ Đang tải bộ đọc QR, vui lòng thử lại sau 2 giây!', 'error');
+      return;
+    }
+    stopLookupQrCamera();
+    let url = URL.createObjectURL(file);
+    let img = new Image();
+    img.onload = function() {
+      let W = img.naturalWidth || img.width;
+      let H = img.naturalHeight || img.height;
+      // Quét đa bước: Toàn ảnh -> Vùng giữa 70% -> Đúng dải QR của Thẻ Hồ Sơ 800x920px
+      let found = decodeQrFromImageRegion(img, 0, 0, W, H, 1200) ||
+                  decodeQrFromImageRegion(img, W * 0.15, H * 0.15, W * 0.70, H * 0.70, 900) ||
+                  decodeQrFromImageRegion(img, W * 0.15, H * 0.28, W * 0.70, H * 0.44, 800);
+      URL.revokeObjectURL(url);
+      inputEl.value = '';
+      if (found && found.data) {
+        handleLookupQrDecoded(found.data);
+      } else {
+        showToast('❌ Không đọc được mã QR trong ảnh này. Vui lòng chọn đúng ảnh Thẻ Hồ Sơ rõ nét hoặc nhập mã thủ công!', 'error', 4800);
+      }
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      inputEl.value = '';
+      showToast('❌ Không thể đọc file ảnh này!', 'error');
+    };
+    img.src = url;
+  }
+
+  async function handleLookupQrDecoded(rawText) {
+    if (lkQrLocked) return;
+    lkQrLocked = true;
+    playLookupBeep();
+    stopLookupQrCamera();
+
+    let ticket = extractTicketFromQrText(rawText);
+    if (!ticket) {
+      lkQrLocked = false;
+      showToast('⚠️ Mã QR không chứa mã hồ sơ hợp lệ!', 'error');
+      return;
+    }
+
+    document.getElementById('lkQuery').value = ticket;
+    showToast('🎯 Đã quét mã hồ sơ: ' + ticket + ' — Đang kiểm tra...', 'success', 2500);
+
+    try {
+      // Kiểm tra lớp 1: Nếu đúng máy đã đăng ký & hồ sơ đang Chờ bổ sung -> mở thẳng vào biểu mẫu!
+      let tkRes = await callBackend('getRevisionByTicket', { ticket: ticket, deviceId: deviceId });
+      if (tkRes && tkRes.found && tkRes.autoAuthorized && tkRes.record) {
+        closeLookupModal();
+        pendingRevisionData = tkRes;
+        document.getElementById('revBannerTitle').innerText = `Hồ sơ ${tkRes.ticket} (${tkRes.studentName || 'Học sinh'}) cần bổ sung thông tin`;
+        document.getElementById('revBannerNote').innerText = `💬 Yêu cầu từ bàn tuyển sinh: "${tkRes.note}"`;
+        document.getElementById('revisionBanner').classList.add('show');
+        loadRevisionToForm();
+        lkQrLocked = false;
+        return;
+      }
+      if (tkRes && tkRes.found) {
+        document.getElementById('lkModalDesc').innerHTML = `Đã nhận mã <b>${escapeHtml(tkRes.ticket)}</b> (trạng thái: <b>${escapeHtml(tkRes.status || '')}</b>). Vui lòng nhập <b>Ngày sinh của học sinh</b> để xác thực bảo mật:`;
+      }
+    } catch (e) {}
+
+    lkQrLocked = false;
+    let dobEl = document.getElementById('lkDob');
+    if (dobEl) {
+      dobEl.focus();
+      showToast('✅ Đã điền mã ' + ticket + '. Vui lòng nhập Ngày sinh của con rồi bấm Tra cứu!', 'success', 4200);
+    }
+  }
 
   let lastLookupResult = null;
   async function executeLookup() {

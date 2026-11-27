@@ -130,6 +130,13 @@ button { cursor: pointer; transition: 0.16s; }
 .rec-name { font-weight: 800; font-size: 14px; color: var(--ink); line-height: 1.3; }
 .rec-meta { font-size: 12px; color: #5c6f5e; margin-top: 3px; font-weight: 500; }
 .dup-tag { display: inline-block; background: #fce8e8; color: #c0392b; border: 1px solid #f5c6cb; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; margin-left: 5px; }
+.lock-tag { display: inline-block; background: #fff3cd; color: #9a5b00; border: 1px solid #f5cf6e; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; margin-left: 5px; }
+.readonly-banner {
+  display: none; padding: 9px 20px; background: #fff4e5; border-bottom: 1.5px solid #f5b963;
+  color: #8a4b00; font-family: var(--font-num); font-size: 13px; font-weight: 700;
+  align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.readonly-banner.show { display: flex; }
 
 .badge { padding: 3px 9px; border-radius: 7px; font-weight: 800; font-size: 11.5px; font-family: var(--font-num); display: inline-block; white-space: nowrap; }
 .bg-cho { background: #fff3cd; color: #856404; }
@@ -439,6 +446,11 @@ button { cursor: pointer; transition: 0.16s; }
         </div>
       </div>
 
+      <div class="readonly-banner" id="readonlyBanner">
+        <span id="readonlyBannerText">🔒 Đang xem ở chế độ Chỉ đọc vì đồng nghiệp đang xử lý hồ sơ này.</span>
+        <button class="btn" style="border-color:#e67e22;color:#b45309;background:#fff;" onclick="takeoverCurrentRecord()">⚡ Tiếp quản xử lý</button>
+      </div>
+
       <div class="detail-tabs" id="navTabs"></div>
 
       <div class="detail-body" id="detailBodyScroll">
@@ -477,6 +489,12 @@ button { cursor: pointer; transition: 0.16s; }
   let pendingStatus = '';
   let duplicateMap = {};
   let statusFilterVal = '';
+  let activeLocks = {};
+  let currentRowHash = '';
+  let isReadOnlyMode = false;
+  let heldLockTicket = '';
+  let lockHeartbeatTimer = null;
+  let lockPollTimer = null;
 
   // QR Inline Camera State
   let qrStream = null;
@@ -597,23 +615,23 @@ button { cursor: pointer; transition: 0.16s; }
     if (!isWaiting) bc.postMessage({ kind: 'FOCUS_FIELD', field: fieldId });
   }
 
-  // Đồng bộ cuộn theo khung cuộn detailBodyScroll
+  // Đồng bộ cuộn chuẩn xác 100% theo tỷ lệ + chốt chặt 2 đầu TOP/BOTTOM
   let scrollFrame = 0;
   document.getElementById('detailBodyScroll').addEventListener('scroll', () => {
     if (!document.getElementById('chkScroll').checked || isWaiting || !currentRecord) return;
     if (scrollFrame) return;
     scrollFrame = requestAnimationFrame(() => {
       scrollFrame = 0;
-      let fields = document.querySelectorAll('#formArea .field');
-      if (!fields.length) return;
-      let containerRect = document.getElementById('detailBodyScroll').getBoundingClientRect();
-      let threshold = containerRect.top + containerRect.height / 3;
-      let anchorId = null, minDiff = Infinity;
-      fields.forEach(f => {
-        let diff = Math.abs(f.getBoundingClientRect().top - threshold);
-        if (diff < minDiff) { minDiff = diff; anchorId = f.getAttribute('data-id'); }
-      });
-      if (anchorId) bc.postMessage({ kind: 'SCROLL_ANCHOR', anchor: anchorId });
+      let el = document.getElementById('detailBodyScroll');
+      let maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll <= 0 || el.scrollTop <= 15) {
+        bc.postMessage({ kind: 'SCROLL_SYNC', pos: 'TOP', ratio: 0 });
+      } else if (el.scrollTop >= maxScroll - 15) {
+        bc.postMessage({ kind: 'SCROLL_SYNC', pos: 'BOTTOM', ratio: 1 });
+      } else {
+        let ratio = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
+        bc.postMessage({ kind: 'SCROLL_SYNC', pos: 'RATIO', ratio: ratio });
+      }
     });
   }, { passive: true });
 
@@ -813,6 +831,7 @@ button { cursor: pointer; transition: 0.16s; }
   };
 
   async function logout() {
+    releaseCurrentLock(false);
     try { await callBackend('logout', {}, staffAuth); } catch (e) {}
     localStorage.removeItem('ts_auth_session');
     localStorage.removeItem('ts_staff');
@@ -849,7 +868,9 @@ button { cursor: pointer; transition: 0.16s; }
         return;
       }
       listData = res.records || [];
+      activeLocks = res.activeLocks || {};
       buildDuplicateMap(listData);
+      startLockBackgroundPoll();
 
       let cho = 0, bs = 0, ok = 0;
       let grades = new Set();
@@ -903,10 +924,14 @@ button { cursor: pointer; transition: 0.16s; }
       let isSel = currentRecord && currentRecord.Ma_Ticket === r.Ma_Ticket;
       let dupOthers = duplicateMap[r.Ma_Ticket];
       let dupTag = dupOthers ? `<span class="dup-tag" title="Trùng với ${escapeHtml(dupOthers.join(', '))}">⚠️ Trùng</span>` : '';
+      let lockInfo = activeLocks[r.Ma_Ticket];
+      let mySessKey = staffAuth.token || ('USER_' + (staffAuth.username || '').toLowerCase());
+      let isLockedByOther = Boolean(lockInfo && lockInfo.sessionKey && lockInfo.sessionKey !== mySessKey);
+      let lockTag = isLockedByOther ? `<span class="lock-tag" title="Đang được ${escapeHtml(lockInfo.user)} mở xử lý lúc ${escapeHtml(lockInfo.time || '')}">🔒 ${escapeHtml(lockInfo.user)}</span>` : '';
       let phone = r.SDT_Cha || r.SDT_Me || r.SDT_Lien_He || '';
       html += `<div class="rec-card ${isSel ? 'selected' : ''}" onclick="viewDetail('${escapeHtml(r.Ma_Ticket)}')">
         <div class="rec-top">
-          <span class="rec-ticket">${escapeHtml(r.Ma_Ticket)}${dupTag}</span>
+          <span class="rec-ticket">${escapeHtml(r.Ma_Ticket)}${dupTag}${lockTag}</span>
           <span class="badge ${getStatusBadgeClass(r.Trang_Thai)}">${escapeHtml(r.Trang_Thai)}</span>
         </div>
         <div class="rec-name">${escapeHtml(r.Ho_Ten_HS || '(Chưa nhập tên)')}</div>
@@ -919,16 +944,172 @@ button { cursor: pointer; transition: 0.16s; }
   // ==========================================
   // CHI TIẾT HỒ SƠ (CLONE ĐỘC LẬP + ĐỦ 4 TAB + TIMELINE LỊCH SỬ)
   // ==========================================
-  function viewDetail(ticket) {
+  function startLockBackgroundPoll() {
+    if (lockPollTimer) return;
+    lockPollTimer = setInterval(async () => {
+      if (!listData.length || document.hidden) return;
+      try {
+        let tks = listData.slice(0, 120).map(r => r.Ma_Ticket).filter(Boolean);
+        let res = await callBackend('getActiveLocks', { tickets: tks }, staffAuth);
+        if (res && res.success && res.locks) {
+          activeLocks = res.locks;
+          renderRecordList();
+        }
+      } catch (e) {}
+    }, 20000);
+  }
+
+  function stopLockHeartbeat() {
+    if (lockHeartbeatTimer) { clearInterval(lockHeartbeatTimer); lockHeartbeatTimer = null; }
+  }
+
+  function startLockHeartbeat(ticket) {
+    stopLockHeartbeat();
+    lockHeartbeatTimer = setInterval(async () => {
+      if (!heldLockTicket || heldLockTicket !== ticket || isReadOnlyMode) return;
+      try {
+        let res = await callBackend('renewLock', { ticket: ticket }, staffAuth);
+        if (res && res.stolen) {
+          stopLockHeartbeat();
+          heldLockTicket = '';
+          setReadOnlyUI(true, `⚠️ Đồng nghiệp "${res.lockedBy}" vừa tiếp quản hồ sơ này lúc ${res.lockedAt || ''}. Màn hình đã chuyển sang Chỉ xem để tránh ghi đè dữ liệu!`);
+          showToast(`⚠️ ${res.lockedBy} vừa tiếp quản hồ sơ ${ticket}!`, 'error');
+        }
+      } catch (e) {}
+    }, 45000);
+  }
+
+  function releaseCurrentLock(keepaliveBeacon = false) {
+    stopLockHeartbeat();
+    if (!heldLockTicket) return;
+    let tk = heldLockTicket;
+    heldLockTicket = '';
+    delete activeLocks[tk];
+    if (keepaliveBeacon && window.APP_CONFIG && window.APP_CONFIG.GAS_API_URL) {
+      try {
+        fetch(window.APP_CONFIG.GAS_API_URL, {
+          method: 'POST', mode: 'cors', keepalive: true,
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'releaseLock', payload: { ticket: tk }, auth: staffAuth })
+        }).catch(() => {});
+      } catch (e) {}
+    } else {
+      callBackend('releaseLock', { ticket: tk }, staffAuth).catch(() => {});
+    }
+  }
+
+  window.addEventListener('beforeunload', () => releaseCurrentLock(true));
+
+  function setReadOnlyUI(readOnly, bannerMsg) {
+    isReadOnlyMode = readOnly;
+    let banner = document.getElementById('readonlyBanner');
+    let bar = document.getElementById('actionBar');
+    if (readOnly) {
+      document.getElementById('readonlyBannerText').innerText = bannerMsg || '🔒 Đang xem ở chế độ Chỉ đọc vì đồng nghiệp đang xử lý hồ sơ này.';
+      banner.classList.add('show');
+      bar.style.display = 'none';
+    } else {
+      banner.classList.remove('show');
+      bar.style.display = 'flex';
+    }
+    document.querySelectorAll('#formArea input, #formArea select, #formArea textarea').forEach(el => {
+      el.disabled = readOnly;
+    });
+  }
+
+  let pendingLockConflictData = null;
+
+  async function viewDetail(ticket, options = {}) {
     let orig = listData.find(r => r.Ma_Ticket === ticket);
     if (!orig) return showToast('Không tìm thấy hồ sơ ' + ticket, 'error');
 
-    // Clone độc lập hoàn toàn -> đóng mà không lưu sẽ không làm biến dạng listData!
-    currentRecord = JSON.parse(JSON.stringify(orig));
+    // Nhả khóa hồ sơ cũ trước khi mở hồ sơ mới
+    if (heldLockTicket && heldLockTicket !== ticket) {
+      releaseCurrentLock(false);
+    }
+
+    if (options.readOnly) {
+      openRecordInPanel(options.freshRecord || orig, options.rowHash || orig._rowHash || '', true, options.bannerMsg || '');
+      return;
+    }
+
+    try {
+      let lockRes = await callBackend('acquireLock', { ticket: ticket, force: Boolean(options.force) }, staffAuth);
+      if (lockRes && lockRes.locked) {
+        pendingLockConflictData = {
+          ticket: ticket,
+          lockedBy: lockRes.lockedBy,
+          lockedAt: lockRes.lockedAt,
+          freshRecord: lockRes.record || orig,
+          rowHash: lockRes.rowHash || orig._rowHash || ''
+        };
+        activeLocks[ticket] = { user: lockRes.lockedBy, sessionKey: 'OTHER', time: lockRes.lockedAt };
+        renderRecordList();
+
+        document.getElementById('modalIcon').innerText = '🔒';
+        document.getElementById('modalTitle').innerText = `Hồ sơ ${ticket} đang có người xử lý!`;
+        document.getElementById('modalDesc').innerHTML = `Nhân viên <b style="color:#c0392b;">${escapeHtml(lockRes.lockedBy)}</b> đang mở xử lý hồ sơ này${lockRes.lockedAt ? ' (từ ' + escapeHtml(lockRes.lockedAt) + ')' : ''}.<br>Để tránh 2 người cùng sửa làm ghi đè mất dữ liệu của nhau, vui lòng chọn:`;
+        document.getElementById('modalExtra').innerHTML = '';
+        document.getElementById('modalActions').innerHTML = `
+          <button class="btn-modal btn-cancel" onclick="closeConfirmModal()">Hủy</button>
+          <button class="btn-modal btn-confirm-print" style="flex:1;padding:11px;font-size:13px;" onclick="openConflictAsReadOnly()">👁️ Chỉ xem</button>
+          <button class="btn-modal btn-confirm-bosung" onclick="confirmTakeoverLock()">⚡ Tiếp quản</button>
+        `;
+        document.getElementById('confirmModal').classList.add('show');
+        return;
+      }
+
+      if (lockRes && lockRes.success && lockRes.record) {
+        heldLockTicket = ticket;
+        let mySessKey = staffAuth.token || ('USER_' + (staffAuth.username || '').toLowerCase());
+        activeLocks[ticket] = { user: staffUser, sessionKey: mySessKey, time: lockRes.lockedAt || '' };
+        // Cập nhật bản mới nhất vào listData
+        let idx = listData.findIndex(r => r.Ma_Ticket === ticket);
+        if (idx !== -1) listData[idx] = lockRes.record;
+        openRecordInPanel(lockRes.record, lockRes.rowHash || lockRes.record._rowHash || '', false, '');
+        startLockHeartbeat(ticket);
+        if (options.force) showToast(`⚡ Đã tiếp quản quyền xử lý hồ sơ ${ticket} (dữ liệu mới nhất)!`);
+        return;
+      }
+    } catch (e) {
+      // Fallback nhẹ nếu mạng chập chờn
+    }
+
+    openRecordInPanel(orig, orig._rowHash || '', false, '');
+  }
+
+  function openConflictAsReadOnly() {
+    if (!pendingLockConflictData) return;
+    let d = pendingLockConflictData;
+    closeConfirmModal();
+    viewDetail(d.ticket, {
+      readOnly: true,
+      freshRecord: d.freshRecord,
+      rowHash: d.rowHash,
+      bannerMsg: `🔒 Chế độ Chỉ xem — Nhân viên "${d.lockedBy}" đang mở xử lý hồ sơ ${d.ticket}${d.lockedAt ? ' (từ ' + d.lockedAt + ')' : ''}.`
+    });
+  }
+
+  function confirmTakeoverLock() {
+    if (!pendingLockConflictData) return;
+    let tk = pendingLockConflictData.ticket;
+    closeConfirmModal();
+    viewDetail(tk, { force: true });
+  }
+
+  function takeoverCurrentRecord() {
+    if (!currentRecord) return;
+    viewDetail(currentRecord.Ma_Ticket, { force: true });
+  }
+
+  function openRecordInPanel(recObj, rowHash, readOnly, bannerMsg) {
+    currentRecord = JSON.parse(JSON.stringify(recObj));
+    currentRowHash = rowHash || currentRecord._rowHash || '';
 
     document.getElementById('detailEmpty').style.display = 'none';
     document.getElementById('detailSheet').classList.add('open');
 
+    let ticket = currentRecord.Ma_Ticket;
     document.getElementById('lblTicket').innerText = ticket;
     document.getElementById('lblStudentName').innerText = '— ' + (currentRecord.Ho_Ten_HS || '(Chưa có tên)');
     updateDetailHeaderStatus();
@@ -952,6 +1133,7 @@ button { cursor: pointer; transition: 0.16s; }
     navHtml += `<button class="dtab" id="nav_${activeTabs.length}" onclick="switchTab(${activeTabs.length})">🕒 Lịch sử xử lý</button>`;
     document.getElementById('navTabs').innerHTML = navHtml;
 
+    setReadOnlyUI(readOnly, bannerMsg);
     renderRecordList();
     switchTab(0);
   }
@@ -968,11 +1150,27 @@ button { cursor: pointer; transition: 0.16s; }
   }
 
   function closeDetail() {
+    releaseCurrentLock(false);
     currentRecord = null;
+    currentRowHash = '';
+    isReadOnlyMode = false;
+    document.getElementById('readonlyBanner').classList.remove('show');
     document.getElementById('detailSheet').classList.remove('open');
     document.getElementById('detailEmpty').style.display = 'flex';
     if (!isWaiting) setWaitMode(true);
     renderRecordList();
+  }
+
+  function showConflictReloadModal(ticket, errMsg) {
+    document.getElementById('modalIcon').innerText = '⚠️';
+    document.getElementById('modalTitle').innerText = 'Phát hiện dữ liệu đã thay đổi!';
+    document.getElementById('modalDesc').innerHTML = escapeHtml(errMsg || `Hồ sơ ${ticket} vừa được đồng nghiệp cập nhật mới hơn. Bấm tải lại bản mới nhất để tránh ghi đè dữ liệu!`);
+    document.getElementById('modalExtra').innerHTML = '';
+    document.getElementById('modalActions').innerHTML = `
+      <button class="btn-modal btn-cancel" onclick="closeConfirmModal()">Đóng</button>
+      <button class="btn-modal btn-confirm-approve" onclick="closeConfirmModal();viewDetail('${escapeHtml(ticket)}',{force:true});">🔄 Tải lại bản mới nhất</button>
+    `;
+    document.getElementById('confirmModal').classList.add('show');
   }
 
   // CHỈ DÙNG f.type === 'Select_Tinh' và f.type === 'Select_Xa' (KHÔNG BAO GIỜ NHẦM Gioi_Tinh!)
@@ -1140,6 +1338,9 @@ button { cursor: pointer; transition: 0.16s; }
 
     document.getElementById('formArea').innerHTML = html;
     selectFields.forEach(f => initSearchableSelect(f));
+    if (isReadOnlyMode) {
+      document.querySelectorAll('#formArea input, #formArea select, #formArea textarea').forEach(el => { el.disabled = true; });
+    }
     broadcastState();
   }
 
@@ -1222,16 +1423,24 @@ button { cursor: pointer; transition: 0.16s; }
   }
 
   async function saveEdits() {
-    if (!currentRecord) return;
+    if (!currentRecord || isReadOnlyMode) return;
     let btn = document.getElementById('btnSaveOnly');
     let oldTxt = btn.innerText;
     btn.innerText = '⏳ Đang lưu...'; btn.disabled = true;
     try {
-      const res = await callBackend('updateHoSo', { ticket: currentRecord.Ma_Ticket, newData: currentRecord, staffUser: staffUser }, staffAuth);
+      const res = await callBackend('updateHoSo', {
+        ticket: currentRecord.Ma_Ticket,
+        newData: currentRecord,
+        staffUser: staffUser,
+        expectedHash: currentRowHash
+      }, staffAuth);
       btn.innerText = oldTxt; btn.disabled = false;
       if (res && res.success) {
+        if (res.newHash) currentRowHash = res.newHash;
         showToast('💾 Đã lưu thay đổi vào CSDL!');
         await loadList(true);
+      } else if (res && res.conflict) {
+        showConflictReloadModal(currentRecord.Ma_Ticket, res.error);
       } else {
         showToast('LỖI: ' + ((res && res.error) || 'Không thể lưu'), 'error');
       }
@@ -1418,22 +1627,32 @@ button { cursor: pointer; transition: 0.16s; }
     try {
       if (stt === 'Đã duyệt' || stt === 'Chờ bổ sung') {
         let saveRes = await callBackend('updateHoSo', {
-          ticket: currentRecord.Ma_Ticket, newData: currentRecord, staffUser: staffUser, exceptionInfo: exceptionInfo
+          ticket: currentRecord.Ma_Ticket, newData: currentRecord, staffUser: staffUser,
+          exceptionInfo: exceptionInfo, expectedHash: currentRowHash
         }, staffAuth);
+        if (saveRes && saveRes.conflict) {
+          return showConflictReloadModal(currentRecord.Ma_Ticket, saveRes.error);
+        }
         if (!saveRes || !saveRes.success) {
           if (btnC) { btnC.disabled = false; btnC.innerText = 'Thử lại'; }
           return showToast('Lỗi: ' + ((saveRes && saveRes.error) || 'Không lưu được hồ sơ'), 'error');
         }
+        if (saveRes.newHash) currentRowHash = saveRes.newHash;
       }
 
       let stRes = await callBackend('updateStatus', {
-        ticket: currentRecord.Ma_Ticket, newStatus: stt, user: staffUser, reason: reason
+        ticket: currentRecord.Ma_Ticket, newStatus: stt, user: staffUser,
+        reason: reason, expectedHash: currentRowHash
       }, staffAuth);
 
+      if (stRes && stRes.conflict) {
+        return showConflictReloadModal(currentRecord.Ma_Ticket, stRes.error);
+      }
       if (!stRes || !stRes.success) {
         if (btnC) { btnC.disabled = false; btnC.innerText = 'Thử lại'; }
         return showToast('Lỗi: ' + ((stRes && stRes.error) || 'Không đổi được trạng thái'), 'error');
       }
+      if (stRes.newHash) currentRowHash = stRes.newHash;
 
       currentRecord.Trang_Thai = stt;
       updateDetailHeaderStatus();

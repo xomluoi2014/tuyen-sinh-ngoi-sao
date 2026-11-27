@@ -484,13 +484,24 @@
     }
 
     if (msg.kind === 'SCROLL_TOGGLE') scrollEnabled = msg.enabled;
+    if (msg.kind === 'SCROLL_SYNC' && scrollEnabled && !isWaiting) {
+      let docMax = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (msg.pos === 'TOP') {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      } else if (msg.pos === 'BOTTOM') {
+        window.scrollTo({ top: docMax, behavior: 'auto' });
+      } else if (typeof msg.ratio === 'number') {
+        let clamped = Math.max(0, Math.min(1, msg.ratio));
+        window.scrollTo({ top: Math.round(docMax * clamped), behavior: 'auto' });
+      }
+    }
     if (msg.kind === 'SCROLL_ANCHOR' && scrollEnabled && !isWaiting) {
       if (msg.anchor) {
         let target = document.getElementById('wrap_' + msg.anchor);
         if (target) {
           let rect = target.getBoundingClientRect();
           let offsetPosition = rect.top + window.pageYOffset - 110;
-          window.scrollTo({ top: offsetPosition, behavior: 'instant' });
+          window.scrollTo({ top: Math.max(0, offsetPosition), behavior: 'auto' });
         }
       }
     }
