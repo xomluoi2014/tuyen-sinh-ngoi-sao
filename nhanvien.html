@@ -146,12 +146,82 @@ button { cursor: pointer; transition: 0.16s; }
 
 /* CỘT PHẢI: NỀN TRẮNG TINH SẠCH SẼ TRONG KHUNG NỔI */
 .right-pane {
+  position: relative;
   background: var(--right-bg);
   display: flex;
   flex-direction: column;
   min-height: 0;
   padding: 14px 18px;
   overflow: hidden;
+}
+
+/* LỚP KÍNH MỜ CỤC BỘ KHI CHUYỂN HỒ SƠ (CHỐNG CẢM GIÁC LAG) */
+.pane-loader {
+  position: absolute;
+  inset: 14px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+.pane-loader.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.pane-loader-card {
+  background: #ffffff;
+  border: 1.5px solid #cfe0c6;
+  border-radius: 18px;
+  padding: 20px 28px;
+  box-shadow: 0 14px 36px rgba(24, 43, 69, 0.14);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  max-width: 90%;
+}
+.ns-spin {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3.5px solid #dff0d4;
+  border-top-color: var(--primary);
+  animation: nsSpinAnim 0.72s linear infinite;
+  flex-shrink: 0;
+}
+.rec-mini-spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #cfe0c6;
+  border-top-color: var(--primary);
+  animation: nsSpinAnim 0.7s linear infinite;
+  vertical-align: -2px;
+  margin-left: 5px;
+}
+@keyframes nsSpinAnim { to { transform: rotate(360deg); } }
+.pane-loader-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  font-family: var(--font-num);
+  line-height: 1.3;
+}
+.pane-loader-sub {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-num);
+  margin-top: 3px;
 }
 .detail-empty {
   flex: 1; background: #ffffff; border: 2px dashed #c8dcae; border-radius: 22px;
@@ -308,6 +378,7 @@ button { cursor: pointer; transition: 0.16s; }
   .workspace { grid-template-columns: 1fr; height: auto; overflow: visible; }
   .left-pane { max-height: 48vh; border-right: none; border-bottom: 2px solid #c0d4b9; }
   .right-pane { padding: 10px; overflow: visible; }
+  .pane-loader { inset: 10px; }
   .field-50 { width: 100%; }
 }
 </style>
@@ -408,6 +479,16 @@ button { cursor: pointer; transition: 0.16s; }
 
   <!-- CỘT PHẢI: CHI TIẾT HỒ SƠ (NỀN TRẮNG TINH NỔI BẬT) -->
   <section class="right-pane">
+    <div class="pane-loader" id="paneLoader" aria-live="polite">
+      <div class="pane-loader-card">
+        <div class="ns-spin"></div>
+        <div>
+          <div class="pane-loader-title" id="paneLoaderTitle">Đang mở hồ sơ...</div>
+          <div class="pane-loader-sub" id="paneLoaderSub">Đang kiểm tra khóa & đồng bộ dữ liệu mới nhất...</div>
+        </div>
+      </div>
+    </div>
+
     <div class="detail-empty" id="detailEmpty">
       <div style="font-size:58px;margin-bottom:10px;">📋</div>
       <h2 style="margin:0 0 6px;color:var(--ink);">Chọn một hồ sơ bên trái hoặc bấm "📷 Quét QR"</h2>
@@ -495,6 +576,8 @@ button { cursor: pointer; transition: 0.16s; }
   let heldLockTicket = '';
   let lockHeartbeatTimer = null;
   let lockPollTimer = null;
+  let loadingTicket = '';
+  let openRequestSeq = 0;
 
   // QR Inline Camera State
   let qrStream = null;
@@ -921,17 +1004,19 @@ button { cursor: pointer; transition: 0.16s; }
     }
     let html = '';
     filteredData.forEach(r => {
-      let isSel = currentRecord && currentRecord.Ma_Ticket === r.Ma_Ticket;
+      let isLoadingThis = (loadingTicket === r.Ma_Ticket);
+      let isSel = isLoadingThis || (!loadingTicket && currentRecord && currentRecord.Ma_Ticket === r.Ma_Ticket);
       let dupOthers = duplicateMap[r.Ma_Ticket];
       let dupTag = dupOthers ? `<span class="dup-tag" title="Trùng với ${escapeHtml(dupOthers.join(', '))}">⚠️ Trùng</span>` : '';
       let lockInfo = activeLocks[r.Ma_Ticket];
       let mySessKey = staffAuth.token || ('USER_' + (staffAuth.username || '').toLowerCase());
       let isLockedByOther = Boolean(lockInfo && lockInfo.sessionKey && lockInfo.sessionKey !== mySessKey);
       let lockTag = isLockedByOther ? `<span class="lock-tag" title="Đang được ${escapeHtml(lockInfo.user)} mở xử lý lúc ${escapeHtml(lockInfo.time || '')}">🔒 ${escapeHtml(lockInfo.user)}</span>` : '';
+      let spinHtml = isLoadingThis ? '<span class="rec-mini-spin" title="Đang tải hồ sơ..."></span>' : '';
       let phone = r.SDT_Cha || r.SDT_Me || r.SDT_Lien_He || '';
       html += `<div class="rec-card ${isSel ? 'selected' : ''}" onclick="viewDetail('${escapeHtml(r.Ma_Ticket)}')">
         <div class="rec-top">
-          <span class="rec-ticket">${escapeHtml(r.Ma_Ticket)}${dupTag}${lockTag}</span>
+          <span class="rec-ticket">${escapeHtml(r.Ma_Ticket)}${spinHtml}${dupTag}${lockTag}</span>
           <span class="badge ${getStatusBadgeClass(r.Trang_Thai)}">${escapeHtml(r.Trang_Thai)}</span>
         </div>
         <div class="rec-name">${escapeHtml(r.Ho_Ten_HS || '(Chưa nhập tên)')}</div>
@@ -1019,22 +1104,70 @@ button { cursor: pointer; transition: 0.16s; }
 
   let pendingLockConflictData = null;
 
+  function showPaneLoader(ticket, studentName, subText) {
+    let titleEl = document.getElementById('paneLoaderTitle');
+    let subEl = document.getElementById('paneLoaderSub');
+    if (titleEl) titleEl.innerText = `Đang mở hồ sơ ${ticket}` + (studentName ? ` — ${studentName}` : '');
+    if (subEl) subEl.innerText = subText || 'Đang kiểm tra khóa đồng nghiệp & đồng bộ dữ liệu mới nhất...';
+    let overlay = document.getElementById('paneLoader');
+    if (overlay) overlay.classList.add('show');
+  }
+
+  function hidePaneLoader() {
+    let overlay = document.getElementById('paneLoader');
+    if (overlay) overlay.classList.remove('show');
+  }
+
   async function viewDetail(ticket, options = {}) {
     let orig = listData.find(r => r.Ma_Ticket === ticket);
     if (!orig) return showToast('Không tìm thấy hồ sơ ' + ticket, 'error');
+
+    // Chặn bấm lặp lại đúng hồ sơ đang mở tải hoặc đang mở sẵn (trừ khi force / readOnly)
+    if (!options.force && !options.readOnly) {
+      if (loadingTicket === ticket) return;
+      if (!loadingTicket && currentRecord && currentRecord.Ma_Ticket === ticket && !isReadOnlyMode) return;
+    }
+
+    const mySeq = ++openRequestSeq;
+
+    if (options.readOnly) {
+      loadingTicket = '';
+      hidePaneLoader();
+      if (heldLockTicket && heldLockTicket !== ticket) releaseCurrentLock(false);
+      openRecordInPanel(options.freshRecord || orig, options.rowHash || orig._rowHash || '', true, options.bannerMsg || '');
+      return;
+    }
+
+    // Phản hồi thị giác ngay lập tức (0.001s): sáng thẻ bên trái + phủ lớp kính mờ bên phải
+    loadingTicket = ticket;
+    renderRecordList();
+    showPaneLoader(
+      ticket,
+      orig.Ho_Ten_HS || orig.ho_ten_hs || '',
+      options.force
+        ? 'Đang tiếp quản quyền xử lý & đồng bộ dữ liệu mới nhất...'
+        : 'Đang kiểm tra khóa đồng nghiệp & đồng bộ dữ liệu mới nhất...'
+    );
 
     // Nhả khóa hồ sơ cũ trước khi mở hồ sơ mới
     if (heldLockTicket && heldLockTicket !== ticket) {
       releaseCurrentLock(false);
     }
 
-    if (options.readOnly) {
-      openRecordInPanel(options.freshRecord || orig, options.rowHash || orig._rowHash || '', true, options.bannerMsg || '');
-      return;
-    }
-
     try {
       let lockRes = await callBackend('acquireLock', { ticket: ticket, force: Boolean(options.force) }, staffAuth);
+
+      // Race Condition Guard: nếu trong lúc chờ, nhân viên đã bấm sang hồ sơ khác -> hủy kết quả cũ & nhả khóa thừa
+      if (mySeq !== openRequestSeq) {
+        if (lockRes && lockRes.success && !lockRes.locked) {
+          callBackend('releaseLock', { ticket: ticket }, staffAuth).catch(() => {});
+        }
+        return;
+      }
+
+      loadingTicket = '';
+      hidePaneLoader();
+
       if (lockRes && lockRes.locked) {
         pendingLockConflictData = {
           ticket: ticket,
@@ -1072,10 +1205,17 @@ button { cursor: pointer; transition: 0.16s; }
         return;
       }
     } catch (e) {
+      if (mySeq !== openRequestSeq) return;
+      loadingTicket = '';
+      hidePaneLoader();
       // Fallback nhẹ nếu mạng chập chờn
     }
 
-    openRecordInPanel(orig, orig._rowHash || '', false, '');
+    if (mySeq === openRequestSeq) {
+      loadingTicket = '';
+      hidePaneLoader();
+      openRecordInPanel(orig, orig._rowHash || '', false, '');
+    }
   }
 
   function openConflictAsReadOnly() {
@@ -1150,6 +1290,9 @@ button { cursor: pointer; transition: 0.16s; }
   }
 
   function closeDetail() {
+    openRequestSeq++;
+    loadingTicket = '';
+    hidePaneLoader();
     releaseCurrentLock(false);
     currentRecord = null;
     currentRowHash = '';
